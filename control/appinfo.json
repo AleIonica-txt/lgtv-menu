@@ -1,0 +1,16 @@
+{
+    "id": "org.mimenu.tvmenu.control",
+    "version": "0.6.1",
+    "vendor": "Mi Menú",
+    "type": "web",
+    "main": "index.html",
+    "title": "Centro de control",
+    "icon": "icon.png",
+    "resolution": "1920x1080",
+    "transparent": true,
+    "noSplashOnLaunch": true,
+    "visible": false,
+    "disableBackHistoryAPI": true,
+    "defaultWindowType": "overlay",
+    "spinnerOnLaunch": false
+}

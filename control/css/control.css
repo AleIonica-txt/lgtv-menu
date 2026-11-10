@@ -1,0 +1,261 @@
+/* Centro de control: panel claro arriba a la derecha (como el de tvOS) sobre el fondo oscurecido.
+   Solo se animan transform y opacity; sin backdrop-filter (el panel es sólido semitransparente). */
+
+:root {
+  --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --dur: 220ms;
+  --ink: #1b2230;
+  --ink-dim: rgba(27, 34, 48, 0.62);
+  --panel: rgba(236, 239, 245, 0.9);
+  --tile: rgba(255, 255, 255, 0.55);
+  --cell: 292px;
+  --row: 138px;
+  --gap: 16px;
+}
+
+html.reduce-motion {
+  --dur: 0ms;
+}
+
+html, body {
+  margin: 0;
+  width: 1920px;
+  height: 1080px;
+  overflow: hidden;
+  background: transparent;
+  font-family: "LG Smart UI", "Droid Sans", sans-serif;
+  color: var(--ink);
+}
+
+#dim {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  transition: opacity var(--dur) linear;
+}
+
+#status,
+#panel,
+.sub {
+  position: absolute;
+  right: 72px;
+  opacity: 0;
+  transform: translateY(-14px) scale(0.97);
+  transform-origin: top right;
+  transition: opacity var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+html.open #dim,
+html.open #status,
+html.open #panel:not(.away),
+html.open .sub.on {
+  opacity: 1;
+  transform: none;
+}
+
+#status {
+  top: 56px;
+  display: flex;
+  gap: 18px;
+  align-items: center;
+  padding: 12px 28px;
+  border-radius: 40px;
+  background: var(--panel);
+  font-size: 30px;
+  font-weight: 600;
+}
+
+#status-wifi svg {
+  display: block;
+  width: 34px;
+  height: 34px;
+}
+
+#panel,
+.sub {
+  top: 150px;
+  width: calc(var(--cell) * 2 + var(--gap));
+  padding: 24px;
+  border-radius: 44px;
+  background: var(--panel);
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.35);
+}
+
+/* El submenú de audio sustituye al panel (sin cristal sobre cristal). */
+#panel.away {
+  opacity: 0;
+  transform: translateX(-24px) scale(0.98);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: var(--cell) var(--cell);
+  grid-auto-rows: var(--row);
+  gap: var(--gap);
+}
+
+.tile {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 0 24px;
+  border-radius: 30px;
+  background: var(--tile);
+  font-size: 28px;
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease), background-color var(--dur) linear, box-shadow var(--dur) linear;
+}
+
+.tile.focused {
+  background: #fff;
+  transform: scale(1.05);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.tile .text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.tile small {
+  margin-top: 2px;
+  font-size: 23px;
+  font-weight: 400;
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tile .icon svg {
+  display: block;
+  width: 52px;
+  height: 52px;
+}
+
+.tile.power {
+  grid-row: span 2;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+.tile.power .icon svg {
+  width: 120px;
+  height: 120px;
+}
+
+.tile.wide {
+  grid-column: span 2;
+}
+
+.tile.power.confirm {
+  background: #e5484d;
+  color: #fff;
+}
+
+.tile.info {
+  background: transparent;
+}
+
+.tile.info .icon {
+  color: #2f6fe4;
+}
+
+h3 {
+  margin: 26px 8px 14px;
+  font-size: 26px;
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+
+.inputs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--gap);
+}
+
+.input {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 138px;
+  padding: 0 6px;
+  border-radius: 30px;
+  background: var(--tile);
+  font-size: 23px;
+  font-weight: 600;
+  text-align: center;
+  transition: transform var(--dur) var(--ease), background-color var(--dur) linear, box-shadow var(--dur) linear;
+}
+
+.input.focused {
+  background: #fff;
+  transform: scale(1.06);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.input .icon svg {
+  display: block;
+  width: 56px;
+  height: 56px;
+}
+
+/* Punto verde: el aparato conectado a ese HDMI está dando imagen. */
+.input.signal::after {
+  content: "";
+  position: absolute;
+  top: 16px;
+  right: 18px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #22c55e;
+}
+
+/* Entrada que se está viendo ahora. */
+.input.current {
+  box-shadow: inset 0 0 0 4px #2f6fe4;
+}
+
+.input.current.focused {
+  box-shadow: inset 0 0 0 4px #2f6fe4, 0 14px 34px rgba(0, 0, 0, 0.22);
+}
+
+.sub h3 {
+  margin-top: 4px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 96px;
+  padding: 0 28px;
+  margin-top: 10px;
+  border-radius: 26px;
+  background: var(--tile);
+  font-size: 28px;
+  font-weight: 600;
+  transition: transform var(--dur) var(--ease), background-color var(--dur) linear;
+}
+
+.row.focused {
+  background: #fff;
+  transform: scale(1.03);
+}
+
+.row .check svg {
+  width: 40px;
+  height: 40px;
+  color: #2f6fe4;
+}
+
+.row:not(.selected) .check {
+  visibility: hidden;
+}

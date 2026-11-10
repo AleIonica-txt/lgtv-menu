@@ -1,0 +1,14 @@
+{
+    "id": "org.mimenu.tvmenu",
+    "version": "0.20.1",
+    "vendor": "Mi Menú",
+    "type": "web",
+    "main": "index.html",
+    "title": "Mi Menú",
+    "icon": "icon.png",
+    "resolution": "1920x1080",
+    "bgColor": "#0a0d14",
+    "disableBackHistoryAPI": true,
+    "supportQuickStart": true,
+    "useAppHibernation": true
+}

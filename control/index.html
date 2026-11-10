@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Centro de control</title>
+<link rel="stylesheet" href="css/control.css">
+</head>
+<body>
+  <!-- Flota sobre lo que se esté viendo (ventana "overlay" transparente): solo se oscurece el fondo;
+       desenfocarlo no es posible porque la página no puede leer la imagen de otra app. -->
+  <div id="dim"></div>
+
+  <div id="status"><span id="clock"></span><span id="status-wifi"></span></div>
+
+  <section id="panel" aria-label="Centro de control">
+    <div class="tiles">
+      <div class="tile power" data-focusable data-command="power">
+        <span class="icon" data-icon="power"></span><span class="name">Apagar</span>
+      </div>
+      <div class="tile info" id="wifi">
+        <span class="icon" data-icon="wifi"></span><span class="text"><span class="name">Wi-Fi</span><small></small></span>
+      </div>
+      <div class="tile" data-focusable data-command="screenoff">
+        <span class="icon" data-icon="screenoff"></span><span class="text"><span class="name">Apagar pantalla</span><small>Sigue el sonido</small></span>
+      </div>
+      <div class="tile wide" data-focusable data-command="audio" id="audio-tile">
+        <span class="icon" data-icon="speaker"></span><span class="text"><span class="name">Salida de audio</span><small></small></span>
+      </div>
+    </div>
+    <h3>Fuentes</h3>
+    <div class="inputs"></div>
+  </section>
+
+  <section id="audio" class="sub" aria-label="Salida de audio">
+    <h3>Salida de audio</h3>
+    <div class="list"></div>
+  </section>
+
+  <!-- La clave para hablar con el vigilante: la escribe token.sh en la tele (no está en el paquete). -->
+  <script src="token.js"></script>
+  <script src="js/luna.js"></script>
+  <script src="js/watcher.js"></script>
+  <script src="js/focus.js"></script>
+  <script src="js/sound.js"></script>
+  <script src="js/control.js"></script>
+</body>
+</html>
