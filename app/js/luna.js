@@ -12,9 +12,21 @@ const Luna = (() => {
     bridge.call(uri, JSON.stringify(params));
   }
 
+  // Llamada con suscripción: onMessage recibe la primera respuesta y cada aviso posterior.
+  function subscribe(uri, params, onMessage) {
+    const bridge = new PalmServiceBridge();
+    pending.add(bridge);  // viva mientras dure la página
+    bridge.onservicecallback = (msg) => {
+      try {
+        onMessage(JSON.parse(msg));
+      } catch (e) { /* un aviso ilegible no rompe la suscripción */ }
+    };
+    bridge.call(uri, JSON.stringify(params));
+  }
+
   function launch(appId, done) {
     call('luna://com.webos.applicationManager/launch', { id: appId }, done);
   }
 
-  return { call, launch };
+  return { call, subscribe, launch };
 })();

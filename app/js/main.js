@@ -19,12 +19,9 @@ const ICONS = {
     + '<circle cx="44" cy="18" r="5"/><circle cx="24" cy="32" r="5"/><circle cx="36" cy="46" r="5"/>'),
 };
 
-// Cada acceso: app que abre (o "command" interno), nombre corto, textos de la franja superior y
-// colores del ambiente. Con "icon" la tarjeta es un degradado de esos colores con un icono dibujado;
-// con "image" es el logo de la app (copiado de la tele con tools/fetch_icons.sh) sobre su color de
-// fondo ("tile"). Con "logo", al enfocarlo en el Dock la franja superior muestra el logo de la app
-// en grande en vez del título (sobre el fondo ambiental con sus colores: sin imágenes a pantalla
-// completa, que costaban fluidez y tirones al volver de las apps).
+// Cada acceso: app que abre (o "command" interno), nombre y aspecto de su tarjeta. Con "icon" la
+// tarjeta es un degradado de "colors" con un icono dibujado; con "image" es el icono de la app
+// (copiado de la tele con tools/fetch_icons.sh) sobre su color de fondo ("tile").
 const SECTIONS = {
   tv: { app: 'com.webos.app.livetv', label: 'Ver TV', title: 'TV en directo', subtitle: 'TDT',
     icon: ICONS.tv, colors: ['#2563eb', '#0891b2'] },
@@ -32,32 +29,23 @@ const SECTIONS = {
     icon: ICONS.firestick, colors: ['#ea580c', '#d97706'] },
 
   netflix: { app: 'netflix', label: 'Netflix', title: 'Netflix', subtitle: 'Streaming',
-    image: 'icons/netflix.png', tile: '#ffffff', colors: ['#e50914', '#7f1d1d'],
-    logo: 'logos/netflix-logo.svg' },
+    image: 'icons/netflix.png', tile: '#ffffff', colors: ['#e50914', '#7f1d1d'] },
   hbomax: { app: 'com.wbd.stream', label: 'HBO Max', title: 'HBO Max', subtitle: 'Streaming',
-    image: 'icons/hbomax.png', tile: '#00030c', colors: ['#4f46e5', '#1d4ed8'],
-    logo: 'logos/hbomax-logo.svg' },
+    image: 'icons/hbomax.png', tile: '#00030c', colors: ['#4f46e5', '#1d4ed8'] },
   disney: { app: 'com.disney.disneyplus-prod', label: 'Disney+', title: 'Disney+', subtitle: 'Streaming',
-    image: 'icons/disney.png', tile: '#054553', colors: ['#0e7490', '#1e40af'],
-    logo: 'logos/disney-logo.png' },
+    image: 'icons/disney.png', tile: '#054553', colors: ['#0e7490', '#1e40af'] },
   prime: { app: 'amazon', label: 'Prime Video', title: 'Prime Video', subtitle: 'Streaming',
-    image: 'icons/prime.png', tile: '#0578ff', colors: ['#0578ff', '#0e7490'],
-    logo: 'logos/prime-logo.svg' },
+    image: 'icons/prime.png', tile: '#0578ff', colors: ['#0578ff', '#0e7490'] },
   crunchyroll: { app: 'com.crunchyroll.webapp', label: 'Crunchyroll', title: 'Crunchyroll', subtitle: 'Streaming',
-    image: 'icons/crunchyroll.png', tile: '#ff5e00', colors: ['#ff5e00', '#b45309'],
-    logo: 'logos/crunchyroll-logo.svg' },
+    image: 'icons/crunchyroll.png', tile: '#ff5e00', colors: ['#ff5e00', '#b45309'] },
   youtube: { app: 'youtube.leanback.v4', label: 'YouTube', title: 'YouTube', subtitle: 'Streaming',
-    image: 'icons/youtube.png', tile: '#ffffff', colors: ['#dc2626', '#7f1d1d'],
-    logo: 'logos/youtube-logo.svg' },
+    image: 'icons/youtube.png', tile: '#ffffff', colors: ['#dc2626', '#7f1d1d'] },
   appletv: { app: 'com.apple.appletv', label: 'Apple TV', title: 'Apple TV', subtitle: 'Streaming',
-    image: 'icons/appletv.png', tile: '#000000', colors: ['#6b7280', '#1f2937'],
-    logo: 'logos/appletv-logo.svg' },
+    image: 'icons/appletv.png', tile: '#000000', colors: ['#6b7280', '#1f2937'] },
   twitch: { app: 'tv.twitch.tv.starshot.lg', label: 'Twitch', title: 'Twitch', subtitle: 'Streaming',
-    image: 'icons/twitch.png', tile: '#9146ff', colors: ['#9146ff', '#5b21b6'],
-    logo: 'logos/twitch-logo.svg' },
+    image: 'icons/twitch.png', tile: '#9146ff', colors: ['#9146ff', '#5b21b6'] },
   stremio: { app: 'io.strem.tv', label: 'Stremio', title: 'Stremio', subtitle: 'Películas y series',
-    image: 'icons/stremio.png', tile: '#0f0e1c', colors: ['#7f5af0', '#1d4ed8'],
-    logo: 'logos/stremio-logo.svg' },
+    image: 'icons/stremio.png', tile: '#0f0e1c', colors: ['#7f5af0', '#1d4ed8'] },
 
   // El centro de control es otra app: flota sobre lo que se esté viendo (también se abrirá con el
   // botón de fuentes del mando).
@@ -84,7 +72,7 @@ const SECTIONS = {
 const DOCK_DEFAULT = ['tv', 'firestick', 'appletv', 'twitch', 'stremio'];
 const GRID_DEFAULT = ['control', 'netflix', 'hbomax', 'disney', 'prime', 'crunchyroll', 'youtube',
   'menusettings', 'tvsettings', 'lghome', 'homebrew', 'browser'];
-const GRID_COLUMNS = 6;
+const GRID_COLUMNS = 9;
 // Apps que no se muestran: el propio menú y las que no se pueden desinstalar pero no se quieren.
 const HIDDEN_APPS = new Set(['com.webos.app.home', 'org.mimenu.tvmenu', 'com.webos.app.lifeonscreen']);
 // Las entradas (HDMI, AV…) tampoco: solo el Fire Stick tiene tarjeta propia.
@@ -94,23 +82,18 @@ const KEY = { LEFT: 37, UP: 38, RIGHT: 39, DOWN: 40, OK: 13, BACK: 461 };
 const DIR_KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const REPEAT_MS = 140;  // ritmo máximo al mantener una flecha pulsada
-const SCENE_DELAY = 150;  // el fondo cambia cuando el foco se detiene, no en cada paso
-const SAVER_OPTIONS = [3, 5, 10, 0];  // minutos sin usar el mando (0 = nunca)
+const SAVER_OPTIONS = [3, 5, 10, 0];  // minutos sin usar el mando hasta esconder el menú (0 = nunca)
+const SCENE_MODES = ['sun', 'rotate'];
 // as-home.sh monta una copia del menú como Home del sistema (com.webos.app.home).
 const AS_HOME = location.pathname.includes('/com.webos.app.home/');
 
 const root = document.documentElement;
 const dock = document.getElementById('dock');
 const reducedMotion = () => root.classList.contains('reduce-motion');
-let debug = new Set();  // efectos desactivados para medir su coste ({"debug": ["noParallax", ...]})
+let debug = new Set();  // variantes en prueba ({"debug": ["minimal"]}): clases dbg-* en la página
 
 function animate(el, keyframes, ms) {
   if (!reducedMotion()) el.animate(keyframes, { duration: ms, easing: EASE });
-}
-
-function hexToRgba(hex, alpha) {
-  const n = parseInt(hex.slice(1), 16);
-  return `rgba(${n >> 16}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
 }
 
 // localStorage puede fallar o venir vacío: el menú funciona igual con los valores por defecto.
@@ -177,7 +160,9 @@ const Prefs = {
   },
 };
 
-const DEFAULT_SETTINGS = { reduceMotion: false, reduceTransparency: false, sounds: true, saverMinutes: 3 };
+// weatherPlace/Lat/Lon: el lugar del tiempo y del sol; lo guarda tools/weather.sh desde el PC.
+const DEFAULT_SETTINGS = { reduceMotion: false, sounds: true, saverMinutes: 3, sceneMode: 'sun',
+  weather: true, weatherPlace: '', weatherLat: 0, weatherLon: 0 };
 
 // Los ajustes guardados que son del tipo que toca; el resto, por defecto.
 function cleanSettings(saved) {
@@ -186,6 +171,8 @@ function cleanSettings(saved) {
     if (typeof saved[key] === typeof DEFAULT_SETTINGS[key]) out[key] = saved[key];
   }
   if (!SAVER_OPTIONS.includes(out.saverMinutes)) out.saverMinutes = DEFAULT_SETTINGS.saverMinutes;
+  if (!SCENE_MODES.includes(out.sceneMode)) out.sceneMode = DEFAULT_SETTINGS.sceneMode;
+  if (!(Math.abs(out.weatherLat) <= 90 && Math.abs(out.weatherLon) <= 180)) out.weatherPlace = '';
   return out;
 }
 
@@ -194,103 +181,11 @@ const settings = cleanSettings(Prefs.data.settings);
 // Los parámetros de lanzamiento (pruebas) mandan sobre los ajustes guardados.
 function applySettings(overrides = {}) {
   root.classList.toggle('reduce-motion', overrides.reduceMotion ?? settings.reduceMotion);
-  root.classList.toggle('reduce-transparency', overrides.reduceTransparency ?? settings.reduceTransparency);
-  root.classList.toggle('real-blur', !!overrides.realBlur);
   Sound.setEnabled(settings.sounds && !overrides.mute);
   Saver.setMinutes(settings.saverMinutes);
+  const place = settings.weatherPlace ? { lat: settings.weatherLat, lon: settings.weatherLon } : null;
+  Scene.configure({ mode: settings.sceneMode, place, weather: settings.weather });
 }
-
-// ---- Fondo ambiental: degradados pintados en un lienzo pequeño y ampliado ----
-
-const Ambient = (() => {
-  const canvases = Array.from(document.querySelectorAll('#ambient canvas'));
-  // Acento suave sobre una base oscura fija: el fondo "respira" con la sección sin cambiar de golpe.
-  const BLOBS = [  // x, y, radio (fracción del ancho), color 0/1, opacidad
-    [0.15, 0.0, 0.65, 0, 0.42],
-    [0.90, 0.25, 0.50, 1, 0.26],
-    [0.55, 1.20, 0.80, 0, 0.16],
-  ];
-  let front = 0;
-  let shown = null;
-  let hideTimer;
-
-  function paint(canvas, colors) {
-    const g = canvas.getContext('2d', { alpha: false });  // opaco: tapa el fondo de la página
-    const w = canvas.width;
-    const h = canvas.height;
-    const base = g.createLinearGradient(0, 0, w, h);
-    base.addColorStop(0, '#141b2b');
-    base.addColorStop(1, '#090c13');
-    g.fillStyle = base;
-    g.fillRect(0, 0, w, h);
-    for (const [x, y, r, c, a] of BLOBS) {
-      const grad = g.createRadialGradient(x * w, y * h, 0, x * w, y * h, r * w);
-      grad.addColorStop(0, hexToRgba(colors[c], a));
-      grad.addColorStop(1, hexToRgba(colors[c], 0));
-      g.fillStyle = grad;
-      g.fillRect(0, 0, w, h);
-    }
-  }
-
-  // El lienzo nuevo aparece por encima del anterior, que sigue opaco debajo hasta que
-  // termina el fundido y entonces se oculta (una sola capa de pantalla completa en reposo).
-  function show(colors) {
-    if (shown === colors) return;
-    shown = colors;
-    const prev = canvases[front];
-    front = 1 - front;
-    const next = canvases[front];
-    next.classList.remove('on');
-    paint(next, colors);
-    void next.offsetWidth;  // aplicar la opacidad 0 antes de reactivar el fundido
-    prev.style.zIndex = 0;
-    next.style.zIndex = 1;
-    next.classList.add('on');
-    clearTimeout(hideTimer);
-    hideTimer = setTimeout(() => prev.classList.remove('on'), reducedMotion() ? 0 : 600);
-  }
-
-  return { show };
-})();
-
-// ---- Franja superior ----
-
-// Dos capas para el fundido: el logo de la app (si tiene) o su título y subtítulo.
-const Shelf = (() => {
-  const layers = Array.from(document.querySelectorAll('.shelf-text'));
-  let front = 0;
-  let shown = null;
-
-  function show(section) {
-    if (shown === section) return;
-    shown = section;
-    layers[front].classList.remove('on');
-    front = 1 - front;
-    const layer = layers[front];
-    const logo = layer.querySelector('.shelf-logo');
-    // Sin el fichero (app/logos no se publica: son marcas), el título en su lugar.
-    logo.onerror = () => layer.classList.remove('has-logo');
-    if (section.logo) logo.src = section.logo;
-    else logo.removeAttribute('src');
-    layer.classList.toggle('has-logo', !!section.logo);
-    layer.querySelector('h1').textContent = section.title;
-    layer.querySelector('p').textContent = section.subtitle;
-    layer.classList.add('on');
-  }
-
-  // Los logos se decodifican al arrancar: así el primer cambio de tarjeta no espera por ellos.
-  function preload() {
-    for (const section of Object.values(SECTIONS)) {
-      if (section.logo) {
-        const img = new Image();
-        img.src = section.logo;
-        img.decode().catch(() => {});
-      }
-    }
-  }
-
-  return { show, preload };
-})();
 
 // ---- Todas las apps instaladas (launch points de webOS) ----
 
@@ -299,39 +194,38 @@ const iconUrl = (path) => (path ? Watcher.url(`/icon?path=${encodeURIComponent(p
 
 // Apps del sistema para la cuadrícula (las que no son ya un acceso propio de SECTIONS). Solo la
 // copia del menú que hace de Home tiene permiso para pedir la lista; se guarda en localStorage para
-// dibujar la cuadrícula sin esperar y se refresca al abrir y al volver al menú (apps instaladas).
+// dibujar la cuadrícula sin esperar y webOS avisa de los cambios (Apps.watch).
 const Apps = (() => {
   let list = Store.get('tvmenu.apps', []);  // [{key, id, title, icon, params}]
   const colors = Store.get('tvmenu.iconColors', {});  // icono -> color de su borde (muestreado)
   const curatedApps = new Set(Object.values(SECTIONS).map((s) => s.app).filter(Boolean));
 
-  function refresh() {
-    return new Promise((resolve) => {
-      if (!AS_HOME) {
-        resolve(false);
-        return;
-      }
-      Luna.call('luna://com.webos.applicationManager/listLaunchPoints', {}, (res) => {
-        if (!res.returnValue) {
-          resolve(false);
-          return;
-        }
-        const next = (res.launchPoints || [])
-          .filter((lp) => !HIDDEN_APPS.has(lp.id) && !INPUT_APP.test(lp.id) && !curatedApps.has(lp.id))
-          .map((lp) => ({ key: `lp:${lp.launchPointId || lp.id}`, id: lp.id, title: lp.title,
-            icon: lp.largeIcon || lp.mediumIcon || lp.icon, params: lp.params || null }));
-        const changed = JSON.stringify(next) !== JSON.stringify(list);
-        if (changed) {
-          list = next;
-          Store.set('tvmenu.apps', list);
-        }
-        resolve(changed);
-      });
+  function apply(points) {
+    const next = points
+      .filter((lp) => lp && typeof lp.id === 'string' && !HIDDEN_APPS.has(lp.id) && !INPUT_APP.test(lp.id) && !curatedApps.has(lp.id))
+      .map((lp) => ({ key: `lp:${lp.launchPointId || lp.id}`, id: lp.id, title: lp.title,
+        icon: lp.largeIcon || lp.mediumIcon || lp.icon, params: lp.params || null }));
+    if (JSON.stringify(next) === JSON.stringify(list)) return false;
+    list = next;
+    Store.set('tvmenu.apps', list);
+    return true;
+  }
+
+  // Suscripción a la lista de apps: webOS avisa cuando se instala o se quita una, así que al
+  // volver al menú no hay nada que pedir. Llama a onChange cuando la lista cambia.
+  function watch(onChange) {
+    if (!AS_HOME) return;
+    const uri = 'luna://com.webos.applicationManager/listLaunchPoints';
+    const update = (res) => {
+      if (res.returnValue && Array.isArray(res.launchPoints) && apply(res.launchPoints)) onChange();
+    };
+    Luna.subscribe(uri, { subscribe: true }, (res) => {
+      if (res.launchPoints) update(res);
+      else Luna.call(uri, {}, update);  // aviso de un cambio: se vuelve a leer la lista entera
     });
   }
 
-  // El icono va centrado sobre el color de su propio borde, para que no se note su cuadrado
-  // (como los logos de SECTIONS). El color se lee del icono la primera vez y se guarda.
+  // El icono va sobre el color de su propio borde, para que no se note su cuadrado. El color se lee del icono la primera vez y se guarda.
   function paintTile(app, slot, img) {
     if (colors[app.icon]) {
       slot.style.setProperty('--tile-bg', colors[app.icon]);
@@ -353,7 +247,7 @@ const Apps = (() => {
   }
 
   return {
-    refresh,
+    watch,
     paintTile,
     get: (key) => list.find((a) => a.key === key),
     keys: () => list.map((a) => a.key),
@@ -376,29 +270,22 @@ function buildSlot(key) {
   slot.dataset.action = key;
   let art = '<img alt="">';
   if (app) {
-    slot.classList.add('logo');
     slot.style.setProperty('--tile-bg', '#2a2f3a');
   } else if (section.image) {
-    // Logo reconocible: su nombre solo se muestra cuando la tarjeta no está enfocada.
-    slot.classList.add('logo');
     slot.style.setProperty('--tile-bg', section.tile);
   } else {
     const [c1, c2] = section.colors;
     slot.style.setProperty('--tile-bg', `linear-gradient(135deg, ${c1}, ${c2})`);
     art = section.icon;
   }
-  slot.innerHTML = '<div class="tile"><div class="tile-face">'
-    + `<div class="tile-bg"></div><div class="tile-art">${art}</div><div class="tile-shine"></div>`
-    + '</div></div><div class="tile-label"></div>';
+  slot.innerHTML = `<div class="tile"><div class="tile-face"><div class="tile-art">${art}</div></div></div>`
+    + '<div class="tile-label"></div>';
   slot.querySelector('.tile-label').textContent = section ? section.label : app.title;
   const img = slot.querySelector('.tile-art img');
   // Sin el icono (app/icons sale de tools/fetch_icons.sh), la tarjeta queda con su color y su nombre.
   if (img) {
     img.decoding = 'async';  // decodificar decenas de iconos no retiene el primer fotograma
-    img.onerror = () => {
-      img.remove();
-      slot.classList.remove('logo');
-    };
+    img.onerror = () => img.remove();
   }
   if (app) {
     img.crossOrigin = 'anonymous';  // para poder leer el color de su borde
@@ -552,14 +439,6 @@ function reveal(slot) {
 
 // ---- Efectos de foco ----
 
-// Parallax al llegar: el icono y el brillo se quedan "atrás" y se recolocan sobre el fondo
-// fijo de la tarjeta; el brillo, más cercano, se mueve más.
-function parallax(slot, [dx, dy]) {
-  for (const [selector, px] of [['.tile-art', 12], ['.tile-shine', 48]]) {
-    animate(slot.querySelector(selector), [{ translate: `${-dx * px}px ${-dy * px}px` }, { translate: '0 0' }], 560);
-  }
-}
-
 // Rebote en el borde: no hay nada en esa dirección y el foco se queda donde está.
 function bump(el, [dx, dy]) {
   animate(el.querySelector('.tile') || el,
@@ -629,7 +508,9 @@ const SettingsPanel = (() => {
     value('sounds').textContent = yesNo(settings.sounds);
     value('saver').textContent = settings.saverMinutes ? `${settings.saverMinutes} min` : 'Nunca';
     value('reduceMotion').textContent = yesNo(settings.reduceMotion);
-    value('reduceTransparency').textContent = yesNo(settings.reduceTransparency);
+    value('scene').textContent = settings.sceneMode === 'sun' ? 'Según el sol' : 'Cambia cada 10 min';
+    value('weather').textContent = !settings.weatherPlace ? 'Sin lugar'
+      : settings.weather ? settings.weatherPlace : 'No';
     value('home').textContent = menuIsHome === null ? 'No disponible' : menuIsHome ? 'Mi Menú' : 'Inicio de LG';
   }
 
@@ -668,6 +549,17 @@ const SettingsPanel = (() => {
     save(settings.saverMinutes > 0);
   }
 
+  function cycleScene() {
+    settings.sceneMode = SCENE_MODES[(SCENE_MODES.indexOf(settings.sceneMode) + 1) % SCENE_MODES.length];
+    save(true);
+  }
+
+  // El lugar se elige desde el PC (hace falta un teclado para buscarlo); aquí se enciende o apaga.
+  function toggleWeather() {
+    if (settings.weatherPlace) toggle('weather');
+    else toast('Elige el lugar desde el PC: tools/weather.sh "tu ciudad"');
+  }
+
   // "La tecla Home abre": volver a Mi Menú es inmediato; pasar al inicio de LG pide confirmación
   // (con el foco en Cancelar).
   function home() {
@@ -697,7 +589,7 @@ const SettingsPanel = (() => {
     if (!AS_HOME) Luna.launch('com.webos.app.home');
   }
 
-  return { open, toggle, cycleSaver, home, setHome };
+  return { open, toggle, cycleSaver, cycleScene, toggleWeather, home, setHome };
 })();
 
 // ---- Modo reordenar: OK coge/suelta una tarjeta y las flechas la mueven por su fila o a otra ----
@@ -848,7 +740,8 @@ const COMMANDS = {
   sounds: () => SettingsPanel.toggle('sounds'),
   saver: () => SettingsPanel.cycleSaver(),
   reduceMotion: () => SettingsPanel.toggle('reduceMotion'),
-  reduceTransparency: () => SettingsPanel.toggle('reduceTransparency'),
+  scene: () => SettingsPanel.cycleScene(),
+  weather: () => SettingsPanel.toggleWeather(),
   home: () => SettingsPanel.home(),
   lgHome: () => SettingsPanel.setHome(false),
   cancel: () => Overlay.close(),
@@ -915,39 +808,12 @@ function back() {
   Sound.play('back');
 }
 
-// Título y colores de una tarjeta; las apps del sistema sin acceso propio, en tonos neutros.
-const NEUTRAL_COLORS = ['#475569', '#334155'];
-function sceneOf(slot) {
-  const section = SECTIONS[slot.dataset.action];
-  if (section) return section;
-  const app = Apps.get(slot.dataset.action);
-  return { title: app ? app.title : '', subtitle: '', colors: NEUTRAL_COLORS };
-}
-
-// Escena de la tarjeta enfocada en el Dock: su logo (o título) arriba y el fondo con sus colores,
-// cambiando juntos en una sola transición. La cuadrícula no cambia la escena: deja la última del
-// Dock (como Apple TV).
-function applyScene(el) {
-  if (!el || !dock.contains(el)) return;
-  const scene = sceneOf(el);
-  if (!debug.has('noShelf')) Shelf.show(scene);
-  if (!debug.has('noAmbient')) Ambient.show(scene.colors);
-}
-
-let sceneTimer;
-Focus.onChange((el, prev, dir) => {
+Focus.onChange((el) => {
   if (!el.classList.contains('slot')) return;  // filas de los ajustes: sin efectos de tarjeta
   const inDock = dock.contains(el);
-  // En el Dock la escena cambia cuando el foco se detiene (el primer foco, al abrir el menú, sin
-  // esperar); en la cuadrícula se queda la última del Dock.
-  clearTimeout(sceneTimer);
-  if (inDock) {
-    sceneTimer = setTimeout(() => applyScene(el), prev ? SCENE_DELAY : 0);
-    lastDockSlot = el;
-  }
+  if (inDock) lastDockSlot = el;
   setPageMode(inDock);
   reveal(el);
-  if (dir && !debug.has('noParallax')) parallax(el, Focus.VEC[dir]);
 });
 
 let lastMove = 0;
@@ -1012,18 +878,6 @@ document.addEventListener('click', (e) => {
   activate(el);
 });
 
-// ---- Reloj ----
-
-// Al volver a verse se actualiza en el acto: oculto, el motor web retrasa los temporizadores.
-let clockTimer;
-function tickClock() {
-  clearTimeout(clockTimer);
-  const now = new Date();
-  document.getElementById('clock').textContent =
-    now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
-  clockTimer = setTimeout(tickClock, 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 50);
-}
-
 // ---- Modo de prueba: recorre el foco solo y mide los fotogramas ----
 
 const Bench = (() => {
@@ -1041,6 +895,7 @@ const Bench = (() => {
     const moves = opts.moves || TOUR.length;
     const interval = opts.interval || 450;
     const frames = [];
+    const latency = [];  // ms desde cada pulsación hasta que su fotograma está en pantalla
     let last = 0;
     let running = true;
     let i = 0;
@@ -1056,7 +911,9 @@ const Bench = (() => {
     });
 
     const timer = setInterval(() => {
+      const t0 = performance.now();
       step(TOUR[i % TOUR.length]);
+      requestAnimationFrame(() => requestAnimationFrame(() => latency.push(performance.now() - t0)));
       if (++i >= moves) {
         clearInterval(timer);
         setTimeout(finish, 700);
@@ -1074,13 +931,13 @@ const Bench = (() => {
         janky: frames.filter((f) => f > 25).length,
         frames: frames.length,
       };
-      const glass = root.classList.contains('reduce-transparency') ? 'Cristal opaco'
-        : root.classList.contains('real-blur') ? 'Desenfoque real' : 'Cristal ligero';
-      panel.textContent = `${glass} · ${reducedMotion() ? 'sin' : 'con'} animaciones`
+      const mean = latency.reduce((s, f) => s + f, 0) / (latency.length || 1);
+      panel.textContent = `${reducedMotion() ? 'Sin' : 'Con'} animaciones`
         + `${debug.size ? ` · ${[...debug].join(', ')}` : ''}\n`
         + `${result.fps} fps de media\n`
         + `p95 ${result.p95} ms · peor ${result.worst} ms\n`
-        + `${result.janky} de ${result.frames} fotogramas > 25 ms`;
+        + `${result.janky} de ${result.frames} fotogramas > 25 ms\n`
+        + `tecla → pantalla: ${Math.round(mean)} ms de media · peor ${Math.round(Math.max(0, ...latency))} ms`;
     }
   }
 
@@ -1092,10 +949,9 @@ const Bench = (() => {
 // Parámetros de lanzamiento (para pruebas por SSH, ver tools/launch.sh):
 //   {"action": "tv"} pulsa ese acceso; {"focus": "netflix"} solo lo enfoca;
 //   {"keys": ["down", "ok", "back"]} simula teclas del mando (las teclas inyectadas no llegan a la app);
-//   {"saver": true} abre el salvapantallas; {"resetOrder": true} vuelve al orden por defecto;
-//   {"bench": {}} mide;
-//   {"reduceMotion"|"reduceTransparency"|"realBlur": true} fuerzan esos modos;
-//   {"debug": ["noParallax", "noAmbient", "noShelf"]} quita efectos para medir.
+//   {"saver": true} esconde el menú como en reposo; {"resetOrder": true} vuelve al orden por defecto;
+//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo;
+//   {"debug": ["minimal"]} activa variantes de prueba (clases dbg-* en la página).
 // Con "keys" o "bench" el menú no suena (son pruebas).
 const KEY_NAMES = { left: KEY.LEFT, up: KEY.UP, right: KEY.RIGHT, down: KEY.DOWN, ok: KEY.OK, back: KEY.BACK };
 
@@ -1130,17 +986,8 @@ function applyParams(params) {
 
 let shownSince = performance.now();  // desde cuándo se ve el menú (Home con él delante: ir al principio)
 document.addEventListener('visibilitychange', () => {
-  if (document.hidden) return;
-  shownSince = performance.now();
-  tickClock();
+  if (!document.hidden) shownSince = performance.now();
 });
-
-// Apps del sistema al día (las recién instaladas o desinstaladas aparecen o desaparecen).
-function refreshApps() {
-  Apps.refresh().then((changed) => {
-    if (changed) rebuildRows();
-  });
-}
 
 // Preferencias guardadas en la tele: si difieren de las locales, se aplican y se rehacen las filas.
 function syncPrefs() {
@@ -1164,7 +1011,6 @@ document.addEventListener('webOSRelaunch', () => {
   else goHome();
   applyParams(launchParams());
   syncPrefs();
-  refreshApps();
 });
 
 // Medición del arranque, en ms desde que el motor web empieza a cargar la página.
@@ -1186,11 +1032,10 @@ function showTiming(builtMs) {
 Focus.setRoot(document.getElementById('page'));
 buildRows();
 Saver.init();
-setTimeout(Shelf.preload, 1500);  // después del primer fotograma: no compite con el arranque
+Scene.init();
 syncSaver();
 goHome();
-tickClock();
 applyParams(launchParams());
 syncPrefs();
-refreshApps();
+Apps.watch(rebuildRows);
 if (launchParams().timing) showTiming(performance.now());

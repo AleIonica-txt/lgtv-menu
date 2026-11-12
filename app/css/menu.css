@@ -1,7 +1,6 @@
-/* Mi Menú: estética "Liquid Glass".
-   Reglas de fluidez: solo se animan transform (scale/translate) y opacity; el cristal del
-   Dock es relleno translúcido (el desenfoque real es opcional: cuesta la mitad de los fps);
-   las tarjetas no llevan cristal. */
+/* Mi Menú: un paisaje con la hora en grande, y abajo un Dock pequeño.
+   Reglas de fluidez: solo se animan transform (scale/translate) y opacity; nada de desenfoques ni
+   sombras que se redibujen; el paisaje va en lienzos (scene.js), no en imágenes. */
 
 :root {
   --ease: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -14,12 +13,11 @@
   --text: #f6f8fb;
   --text-dim: rgba(246, 248, 251, 0.72);
   --base: #0a0d14;
-  /* La tarjeta se diseña a tamaño enfocado (así se ve nítida) y en reposo se encoge (340x204). */
-  --tile-w: 367px;
-  --tile-h: 220px;
-  --tile-rest: 0.926;
+  /* La tarjeta se diseña a tamaño enfocado (así se ve nítida) y en reposo se encoge. */
+  --tile: 132px;
+  --tile-rest: 0.91;
   --radius: 30px;
-  --gap: 32px;
+  --gap: 14px;
 }
 
 html.reduce-motion {
@@ -39,167 +37,139 @@ html, body {
   font-family: "LG Smart UI", "Droid Sans", sans-serif;
 }
 
-/* ---- Fondo ambiental ---- */
+/* ---- Paisaje, fecha y tiempo ---- */
 
 /* Contexto de apilamiento propio: el z-index de los lienzos no sale de aquí. */
-#ambient {
+#scene {
   position: absolute;
   inset: 0;
   z-index: 0;
 }
 
-/* Solo el lienzo visible (y el que entra durante el fundido) se compone. */
-#ambient canvas {
+/* Cada lienzo se funde por separado (un contenedor con opacidad obligaría a componer una capa de
+   pantalla completa de más). El que no se ve mide 1x1. */
+.scene-bg,
+.scene-clock {
   position: absolute;
+  opacity: 0;
+  transition: opacity 1.2s ease-in-out;
+  will-change: opacity;
+}
+
+.scene-bg {
   left: 0;
   top: 0;
   width: 1920px;
   height: 1080px;
+}
+
+.scene-bg.on,
+.scene-clock.on {
+  opacity: 1;
+}
+
+html.reduce-motion .scene-bg,
+html.reduce-motion .scene-clock {
+  transition-duration: 0s;
+}
+
+/* La posición y el color los pone scene.js según el paisaje. */
+#dateline {
+  position: absolute;
+  z-index: 1;
+  left: 0;
+  right: 0;
+  top: 96px;
+  text-align: center;
+  white-space: nowrap;
+  font-size: 34px;
+  line-height: 40px;
+  font-weight: 500;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.25);
+}
+
+#dateline.plain {
+  text-shadow: none;
+}
+
+#dateline .wx {
+  margin-left: 22px;
+  font-weight: 400;
+  opacity: 0.78;
+}
+
+#dateline svg {
+  width: 30px;
+  height: 30px;
+  margin-right: 8px;
+  vertical-align: -5px;
+}
+
+/* Velo sobre el paisaje al bajar a la cuadrícula: las tarjetas se leen y la hora queda de fondo. */
+#scrim {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  background: rgba(6, 8, 12, 0.74);
   opacity: 0;
-  visibility: hidden;
+  transition: opacity var(--dur-page) var(--ease);
   will-change: opacity;
 }
 
-#ambient canvas.on {
+html.in-grid #scrim {
   opacity: 1;
-  visibility: visible;
-  transition: opacity var(--dur-fade) var(--ease-fade);
 }
 
-/* ---- Reloj y franja superior ---- */
-
-#clock {
-  position: absolute;
-  z-index: 2;
-  top: 54px;
-  right: 96px;
-  font-size: 40px;
-  font-weight: 600;
-  color: var(--text-dim);
-}
-
-/* ---- Página: franja superior + Dock arriba, cuadrícula debajo ---- */
+/* ---- Página: el Dock abajo; la cuadrícula, por debajo del borde de la pantalla ---- */
 
 /* El desplazamiento vertical (translate) y la altura los pone main.js según la cuadrícula. */
 #page {
   position: absolute;
+  z-index: 2;
   left: 0;
   top: 0;
   width: 1920px;
   height: 1900px;
-  transition: translate var(--dur-page) var(--ease);
+  transition: translate var(--dur-page) var(--ease), opacity 1.2s ease;
   will-change: transform;
 }
 
-#topshelf {
-  position: absolute;
-  left: 96px;
-  top: 200px;
-  width: 1400px;
-  height: 260px;
-}
-
-.shelf-text {
-  position: absolute;
-  left: 0;
-  top: 0;
+/* Reposo (saver.js): solo queda el paisaje. */
+html.idle #page,
+html.idle #scrim {
   opacity: 0;
-  translate: 0 18px;
-  transition: opacity var(--dur) var(--ease), translate var(--dur-slow) var(--ease);
 }
 
-.shelf-text.on {
-  opacity: 1;
-  translate: 0 0;
-}
-
-/* Sin text-shadow: redibujar una sombra difuminada en cada cambio de título es caro. */
-.shelf-text h1 {
-  margin: 0;
-  font-size: 104px;
-  font-weight: 600;
-  letter-spacing: -1px;
-}
-
-.shelf-text p {
-  margin: 10px 0 0;
-  font-size: 40px;
-  color: var(--text-dim);
-}
-
-/* Logo de la app en lugar del título: alineado a la izquierda como el texto y con un tamaño máximo
-   que iguala logos anchos (Netflix) y casi cuadrados (HBO Max). */
-.shelf-logo {
-  display: block;
-  width: 720px;
-  height: 210px;
-  margin-top: 16px;
-  object-fit: contain;
-  object-position: left center;
-}
-
-.shelf-logo:not([src]),
-.has-logo h1,
-.has-logo p {
-  display: none;
-}
-
-/* ---- Cristal ---- */
-
-.glass {
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.06));
-  box-shadow:
-    inset 0 1.5px 0 rgba(255, 255, 255, 0.35),
-    inset 0 0 0 1.5px rgba(255, 255, 255, 0.10),
-    0 30px 60px rgba(0, 0, 0, 0.30);
-}
-
-/* Desenfoque real del fondo (caro en esta tele). */
-html.real-blur .glass {
-  backdrop-filter: blur(16px) saturate(160%);
-}
-
-/* Modo "reducir transparencia": relleno casi opaco, sin desenfoque. */
-html.reduce-transparency .glass {
-  backdrop-filter: none;
-  background: rgba(30, 36, 50, 0.94);
-}
-
-/* ---- Dock (fila 0) y cuadrícula ---- */
-
+/* El Dock se ajusta a sus tarjetas y queda centrado; si no caben, su fila se desplaza. */
 #dock {
   position: absolute;
-  left: 96px;
-  right: 96px;
-  top: 640px;
-  height: 336px;
+  left: 50%;
+  top: 850px;
+  max-width: 1728px;
+  translate: -50% 0;
 }
 
 .dock-glass {
   position: absolute;
   inset: 0;
-  border-radius: 44px;
+  border-radius: 40px;
+  background: rgba(16, 18, 24, 0.6);
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.08);
   transition: opacity var(--dur-page) var(--ease);
 }
 
-/* En la cuadrícula no debe asomar el canto del cristal por arriba. */
+/* En la cuadrícula no debe asomar el canto de la barra por arriba. */
 html.in-grid .dock-glass {
   opacity: 0;
 }
 
-/* La fila del Dock queda por encima del cristal y alineada con las de la cuadrícula. Si tiene más
-   tarjetas de las que caben, se desplaza y se recorta en los bordes del cristal (no por arriba ni
-   por abajo, para no cortar sombras ni etiquetas). */
+/* El hueco de abajo es para el nombre de la tarjeta enfocada. */
 #dock .row {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 34px;
-  padding: 0 56px;
+  position: relative;
+  padding: 22px 30px 50px;
   overflow-x: clip;
 }
 
-/* Las filas no recortan: las tarjetas que no caben asoman por el borde de la pantalla. */
 .track {
   position: relative;
   display: flex;
@@ -207,13 +177,12 @@ html.in-grid .dock-glass {
   transition: translate var(--dur-slow) var(--ease);
 }
 
-/* Cuadrícula de todas las apps, como la de Apple TV: 6 columnas de tarjetas más pequeñas que las
-   del Dock (mismas variables, redefinidas aquí). Empieza justo por debajo del borde de la
-   pantalla: en el Dock no asoma nada cortado. */
+/* Cuadrícula de todas las apps: 9 columnas de tarjetas algo mayores que las del Dock (mismas
+   variables, redefinidas aquí). Empieza justo por debajo del borde de la pantalla. */
 #grid {
-  --tile-w: 261px;
-  --tile-h: 157px;
-  --radius: 22px;
+  --tile: 168px;
+  --tile-rest: 0.93;
+  --radius: 38px;
   position: absolute;
   left: 96px;
   right: 96px;
@@ -222,41 +191,22 @@ html.in-grid .dock-glass {
 
 .grid-track {
   display: grid;
-  grid-template-columns: repeat(6, var(--tile-w));
-  column-gap: var(--gap);
-  row-gap: 20px;
-}
-
-#grid .tile-art img {
-  width: 96px;
-  height: 96px;
-}
-
-#grid .tile-art svg {
-  width: 80px;
-  height: 80px;
-}
-
-/* Como en tvOS, el nombre solo se ve en la app enfocada. */
-#grid .tile-label {
-  font-size: 26px;
-  opacity: 0;
-}
-
-#grid .slot.focused .tile-label {
-  opacity: 1;
+  grid-template-columns: repeat(9, var(--tile));
+  column-gap: 27px;
+  row-gap: 56px;
 }
 
 /* ---- Tarjetas ---- */
 
 .slot {
+  position: relative;
   flex: none;
-  width: var(--tile-w);
+  width: var(--tile);
 }
 
 .tile {
   position: relative;
-  height: var(--tile-h);
+  height: var(--tile);
   scale: var(--tile-rest);
   transition: scale var(--dur) var(--ease), translate var(--dur) var(--ease);
   will-change: transform;
@@ -266,38 +216,38 @@ html.in-grid .dock-glass {
   scale: 1;
 }
 
-/* Sombra de elevación ya dibujada: al enfocar solo cambia su opacidad. */
-.tile::before {
+/* Foco: un aro blanco separado de la tarjeta, ya dibujado; al enfocar solo cambia su opacidad. */
+.tile::after {
   content: "";
   position: absolute;
-  inset: 0;
-  border-radius: var(--radius);
-  box-shadow: 0 34px 50px -8px rgba(0, 0, 0, 0.6), 0 12px 20px rgba(0, 0, 0, 0.35);
+  inset: -9px;
+  border: 4px solid #fff;
+  border-radius: calc(var(--radius) + 9px);
   opacity: 0;
   transition: opacity var(--dur) var(--ease);
-  will-change: opacity;
 }
 
-.focused .tile::before {
+.focused .tile::after {
   opacity: 1;
 }
 
-/* Capas de la tarjeta (de atrás adelante): fondo, icono y brillo. */
 .tile-face {
   position: absolute;
   inset: 0;
   border-radius: var(--radius);
   overflow: hidden;
-}
-
-.tile-bg {
-  position: absolute;
-  inset: 0;
   background: var(--tile-bg);
 }
 
-/* Sin will-change: capas permanentes para icono y brillo salieron más caras en la tele
-   (más trabajo de composición en cada fotograma) que crearlas al animar. */
+/* Canto de luz fino, para que las tarjetas oscuras no se pierdan sobre la barra. */
+.tile-face::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.12);
+}
+
 .tile-art {
   position: absolute;
   inset: 0;
@@ -308,59 +258,34 @@ html.in-grid .dock-glass {
 }
 
 .tile-art svg {
-  width: 112px;
-  height: 112px;
+  width: 52%;
+  height: 52%;
 }
 
-/* Logos a su tamaño nativo (130 px) para que se vean nítidos; su fondo es el de la tarjeta. */
+/* El icono de la app ocupa toda la tarjeta; su fondo es el de la tarjeta. */
 .tile-art img {
   display: block;
-  width: 130px;
-  height: 130px;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
-.tile-shine {
+/* El nombre solo se ve en la tarjeta enfocada. Opacidad en vez de color: se anima sin redibujar. */
+.tile-label {
   position: absolute;
-  inset: -48px;
-  background: radial-gradient(55% 45% at 30% 8%, rgba(255, 255, 255, 0.38), transparent 70%);
+  left: 50%;
+  top: 100%;
+  translate: -50% 6px;
+  white-space: nowrap;
+  font-size: 28px;
+  font-weight: 500;
+  color: var(--text);
   opacity: 0;
   transition: opacity var(--dur) var(--ease);
 }
 
-.focused .tile-shine {
-  opacity: 1;
-}
-
-/* Brillo suave y borde de luz por encima de todo, como el canto del vidrio. Va encima del
-   icono para que fondo y logo reciban la misma luz y no se note el cuadrado del logo. */
-.tile-face::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  background: radial-gradient(120% 90% at 20% 0%, rgba(255, 255, 255, 0.16), transparent 60%);
-  box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.45), inset 0 0 0 1.5px rgba(255, 255, 255, 0.10);
-}
-
-/* Opacidad en vez de color: se anima sin redibujar el texto. */
-.tile-label {
-  margin-top: 12px;
-  text-align: center;
-  font-size: 32px;
-  color: var(--text);
-  opacity: 0.72;
-  translate: 0 -8px;
-  transition: translate var(--dur) var(--ease), opacity var(--dur) var(--ease);
-}
-
 .focused .tile-label {
-  translate: 0 8px;
   opacity: 1;
-}
-
-/* Logo reconocible: el nombre sobra cuando la tarjeta está enfocada (la franja superior ya lo dice). */
-.logo.focused .tile-label {
-  opacity: 0;
 }
 
 /* ---- Modo reordenar ---- */
@@ -370,8 +295,8 @@ html.in-grid .dock-glass {
   translate: 0 -16px;
 }
 
-.holding .tile-face::after {
-  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.95);
+.holding .tile-label {
+  translate: -50% -10px;
 }
 
 #banner {
@@ -431,7 +356,7 @@ html.in-grid .dock-glass {
 .panel {
   position: relative;
   width: 1080px;
-  padding: 56px 56px 44px;
+  padding: 44px 56px 36px;
   border-radius: 44px;
   background: rgba(30, 35, 48, 0.92);
   box-shadow: inset 0 1.5px 0 rgba(255, 255, 255, 0.18), 0 40px 90px rgba(0, 0, 0, 0.55);
@@ -445,10 +370,6 @@ html.in-grid .dock-glass {
   opacity: 1;
   translate: 0 0;
   scale: 1;
-}
-
-html.reduce-transparency .panel {
-  background: rgb(30, 35, 48);
 }
 
 .panel h2 {
@@ -471,9 +392,9 @@ html.reduce-transparency .panel {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 24px 36px;
+  padding: 18px 36px;
   border-radius: 24px;
-  font-size: 38px;
+  font-size: 36px;
   transition: scale var(--dur) var(--ease);
 }
 
@@ -519,84 +440,6 @@ html.reduce-transparency .panel {
 .setting.focused small,
 .setting.focused .value {
   color: rgba(11, 15, 23, 0.62);
-}
-
-/* ---- Salvapantallas ---- */
-
-#saver {
-  position: absolute;
-  z-index: 20;
-  inset: 0;
-  background: #000;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 1.2s var(--ease), visibility 0s linear 1.2s;
-}
-
-#saver.on {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0s;
-}
-
-#saver img {
-  position: absolute;
-  inset: 0;
-  width: 1920px;
-  height: 1080px;
-  object-fit: cover;
-  opacity: 0;
-  transition: opacity 2s ease;
-}
-
-#saver img.on {
-  opacity: 1;
-}
-
-/* Degradado inferior para que la hora se lea sobre cualquier foto. */
-#saver::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  height: 460px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.6), transparent);
-}
-
-.saver-info {
-  position: absolute;
-  z-index: 1;
-  left: 96px;
-  bottom: 84px;
-}
-
-.saver-time {
-  font-size: 150px;
-  font-weight: 300;
-  line-height: 1;
-}
-
-.saver-date {
-  margin-top: 10px;
-  font-size: 44px;
-}
-
-.saver-date::first-letter {
-  text-transform: uppercase;
-}
-
-.saver-place {
-  margin-top: 22px;
-  font-size: 36px;
-  font-weight: 600;
-}
-
-/* Con el salvapantallas ya opaco, el menú de debajo no se compone. */
-html.saver-covering #page,
-html.saver-covering #ambient,
-html.saver-covering #clock {
-  visibility: hidden;
 }
 
 /* ---- Variantes en prueba (parámetro "debug") ---- */

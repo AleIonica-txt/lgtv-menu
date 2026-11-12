@@ -1,6 +1,6 @@
 {
     "id": "org.mimenu.tvmenu",
-    "version": "0.20.1",
+    "version": "0.21.0",
     "vendor": "Mi Menú",
     "type": "web",
     "main": "index.html",

@@ -8,11 +8,6 @@ token.js
 # IP de la tele de cada cual (copiar tv-ip.example a tv-ip)
 tv-ip
 
-# Recursos de terceros que no se publican; se generan en cada casa:
-# - iconos de las apps de la tele: tools/fetch_icons.sh
-# - logos de las apps (marcas registradas): ver README
-# - fotos del salvapantallas (Wikimedia Commons): tools/fetch_photos.py
+# Iconos de las apps de la tele (marcas de terceros): no se publican, cada cual los copia de la
+# suya con tools/fetch_icons.sh. Los paisajes (app/scenes) sí van: son de uso libre.
 app/icons/
-app/logos/
-app/photos/
-app/photos.new/

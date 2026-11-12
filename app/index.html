@@ -6,30 +6,20 @@
 <link rel="stylesheet" href="css/menu.css">
 </head>
 <body>
-  <!-- Fondo ambiental: dos lienzos que se funden al cambiar de sección. -->
-  <div id="ambient" aria-hidden="true">
-    <canvas width="480" height="270"></canvas>
-    <canvas width="480" height="270"></canvas>
-  </div>
-
-  <div id="clock"></div>
+  <!-- Paisaje de fondo: dos juegos de lienzos (foto y hora) que scene.js crea y funde. -->
+  <div id="scene" aria-hidden="true"></div>
+  <div id="dateline"><span class="date"></span><span class="wx"></span></div>
+  <!-- Oscurece el paisaje cuando se baja a la cuadrícula. -->
+  <div id="scrim" aria-hidden="true"></div>
 
   <!-- La página entera sube al bajar a la cuadrícula. -->
   <div id="page">
-    <!-- Franja superior: logo o título de la sección enfocada (dos capas para el fundido). -->
-    <section id="topshelf">
-      <div class="shelf-text"><img class="shelf-logo" alt=""><h1></h1><p></p></div>
-      <div class="shelf-text"><img class="shelf-logo" alt=""><h1></h1><p></p></div>
-    </section>
-
     <section id="dock">
-      <!-- El cristal es una capa aparte detrás de las tarjetas: así lo que se mueve encima
-           no obliga a recalcular su desenfoque. -->
-      <div class="glass dock-glass"></div>
+      <div class="dock-glass"></div>
       <div class="row"><div class="track"></div></div>
     </section>
 
-    <!-- Cuadrícula con el resto de accesos y todas las apps, como en Apple TV. -->
+    <!-- Cuadrícula con el resto de accesos y todas las apps. -->
     <section id="grid"><div class="track grid-track"></div></section>
   </div>
 
@@ -46,13 +36,16 @@
         <span>Sonidos<small>Al moverte, abrir y volver</small></span><span class="value"></span>
       </div>
       <div class="setting" data-focusable data-command="saver">
-        <span>Salvapantallas<small>Paisajes y ciudades tras un rato sin usar el mando</small></span><span class="value"></span>
+        <span>Esconder el menú en reposo<small>Queda el paisaje con la hora</small></span><span class="value"></span>
+      </div>
+      <div class="setting" data-focusable data-command="scene">
+        <span>Paisaje<small>Amanecer, día, atardecer y noche</small></span><span class="value"></span>
+      </div>
+      <div class="setting" data-focusable data-command="weather">
+        <span>El tiempo<small>Junto a la fecha; de día, niebla si está cubierto</small></span><span class="value"></span>
       </div>
       <div class="setting" data-focusable data-command="reduceMotion">
         <span>Reducir movimiento<small>Sin animaciones: más ágil y sin mareos</small></span><span class="value"></span>
-      </div>
-      <div class="setting" data-focusable data-command="reduceTransparency">
-        <span>Reducir transparencia<small>Fondos opacos en lugar de cristal</small></span><span class="value"></span>
       </div>
       <div class="setting" data-focusable data-command="home">
         <span>La tecla Home abre<small>Si algo falla, vuelve al inicio de LG</small></span><span class="value"></span>
@@ -70,16 +63,6 @@
     </div>
   </section>
 
-  <!-- Salvapantallas: dos capas de foto para el fundido, y la hora. -->
-  <section id="saver" aria-hidden="true">
-    <img alt=""><img alt="">
-    <div class="saver-info">
-      <div class="saver-time"></div>
-      <div class="saver-date"></div>
-      <div class="saver-place"></div>
-    </div>
-  </section>
-
   <div id="toast" role="status"></div>
   <div id="bench" hidden></div>
 
@@ -89,8 +72,8 @@
   <script src="js/watcher.js"></script>
   <script src="js/focus.js"></script>
   <script src="js/sound.js"></script>
-  <script src="js/photos.js"></script>
   <script src="js/saver.js"></script>
+  <script src="js/scene.js"></script>
   <script src="js/main.js"></script>
 </body>
 </html>

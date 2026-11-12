@@ -73,7 +73,7 @@ rm -rf "$TMP"
 mkdir -m 755 "$TMP" || { log "no se pudo crear $TMP"; exit 0; }
 for f in "$SRC"/*; do
     case $(basename "$f") in
-        photos|logos|icons) ln -s "$f" "$TMP/" ;;  # lo pesado se enlaza: no ocupa RAM
+        scenes|fonts|icons) ln -s "$f" "$TMP/" ;;  # lo pesado se enlaza: no ocupa RAM
         *) cp -a "$f" "$TMP/" ;;
     esac
 done
