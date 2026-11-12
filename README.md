@@ -1,7 +1,7 @@
 # Mi Menú: un inicio propio para teles LG webOS rooteadas
 
 > **English summary.** A custom home screen for rooted LG webOS TVs. It replaces LG's Home: you get a
-> Dock and an app grid you can reorder, ambient colours, a photo screensaver with a clock, and a
+> Dock and an app grid you can reorder, a landscape background that follows the sun with a big clock and the weather, and a
 > control center opened with the remote's *Input* button (inputs, audio output, screen off, power
 > off). It also includes some memory tuning for TVs with little RAM. It works through Homebrew Channel
 > `init.d` scripts and a small root daemon, and nothing is written to the system partition: one
@@ -10,8 +10,8 @@
 
 Mi Menú sustituye el inicio de LG por uno propio, más rápido y sin anuncios:
 
-- **Dock y cuadrícula.** Arriba van tus accesos favoritos (TDT, una entrada HDMI y apps); debajo,
-  todas las apps instaladas. Puedes mover cualquier tarjeta de un sitio a otro desde los ajustes del
+- **Dock y cuadrícula.** Abajo, un Dock pequeño con tus accesos favoritos (TDT, una entrada HDMI y
+  apps); al bajar, todas las apps instaladas. El nombre solo aparece en la tarjeta enfocada. Puedes mover cualquier tarjeta de un sitio a otro desde los ajustes del
   menú. Las apps nuevas aparecen solas al final.
 - **Es el Home del sistema.** La tecla Home y la salida de cualquier app llevan a Mi Menú en unos
   0,2 s, sin pasar por el inicio de LG. Desde los ajustes del menú puedes volver al de LG cuando
@@ -19,10 +19,12 @@ Mi Menú sustituye el inicio de LG por uno propio, más rápido y sin anuncios:
 - **Centro de control** con el botón de fuentes del mando. Flota sobre lo que estés viendo y permite
   cambiar de fuente (TDT o HDMI), elegir la salida de audio, apagar la pantalla o apagar la tele.
   Sustituye al selector de entradas de LG.
-- **Salvapantallas propio** con fotos de lugares (Wikimedia Commons), la hora y la fecha. Mientras
-  el menú está delante, sustituye al salvapantallas de LG y a su publicidad.
-- **Ajustes:** orden de las tarjetas, sonidos, salvapantallas, reducir movimiento, reducir
-  transparencia y qué abre la tecla Home.
+- **Paisaje de fondo con la hora en grande**, detrás del relieve, la fecha y el tiempo. El paisaje
+  sigue al sol de tu ciudad: amanecer, día, atardecer y noche; de día, niebla si está cubierto.
+- **Reposo.** Tras unos minutos sin tocar el mando, el menú se esconde y queda el paisaje con la
+  hora. Mientras el menú está delante, no sale el salvapantallas de LG ni su publicidad.
+- **Ajustes:** orden de las tarjetas, sonidos, reposo, paisaje, el tiempo, reducir movimiento y qué
+  abre la tecla Home.
 - **Memoria.** Cierra servicios pesados que se quedan en marcha sin usarse, como el servidor de
   Stremio (~120 MB). También ajusta el gestor de memoria de LG para que las apps que consumen mucha
   memoria no se reinicien al reproducir.
@@ -42,7 +44,6 @@ Mi Menú sustituye el inicio de LG por uno propio, más rápido y sin anuncios:
   con la variable `KEY`.
 - **Un PC con Linux** (o algo parecido) con `bash`, `python3`, `ssh`, `tar` y `ar` (de `binutils`).
   No hace falta ares-cli ni el SDK de LG.
-- Para descargar las fotos del salvapantallas: `python3-pil` (Pillow).
 
 ## Instalación
 
@@ -56,19 +57,23 @@ nano tv-ip            # pon la IP de tu tele
 ssh -i ~/.ssh/lgtv root@$(cat tv-ip) uname -a   # comprueba que entras
 ```
 
-**2. Iconos y fotos.** No se incluyen en el repositorio porque son marcas o imágenes de terceros.
+**2. Iconos y lugar.** Los iconos de las apps no se incluyen en el repositorio porque son marcas.
 
 ```sh
 tools/fetch_icons.sh               # copia de tu tele los iconos de las apps del menú (app/icons/)
-python3 -I tools/fetch_photos.py   # descarga las fotos del salvapantallas (app/photos/)
 ```
 
-- **Iconos de apps que no tienes.** Si no tienes alguna app, el script avisa y la tarjeta se verá
-  con su color y su nombre. Lo mejor es quitar esa app de `SECTIONS` (ver
-  [Personalizar](#personalizar)).
-- **Logos grandes del Dock (opcional).** Al enfocar una app en el Dock, la franja superior muestra su
-  logo en grande. Para ello, deja el fichero en `app/logos/` con el nombre que indica `SECTIONS`
-  (`netflix-logo.svg`, `youtube-logo.svg`…). Si no está el logo, se muestra el nombre de la app.
+Si no tienes alguna app, el script avisa y la tarjeta se verá con su color. Lo mejor es quitar esa
+app de `SECTIONS` (ver [Personalizar](#personalizar)).
+
+Después de instalar (paso 3), elige el lugar para el tiempo y para que el paisaje siga al sol:
+
+```sh
+tools/weather.sh "Granada"         # o "Granada, ES" si hay varios con ese nombre
+```
+
+Solo se guardan el nombre y las coordenadas redondeadas (unos 1 km), y la tele consulta el tiempo
+directamente a Open-Meteo. Sin lugar no hay tiempo y el paisaje va por la hora del reloj.
 
 **3. Compilar e instalar las dos apps** (el menú y el centro de control):
 
@@ -110,7 +115,7 @@ comando reinicia el vigilante y refresca la copia del menú como Home.
 Casi todo está al principio de [app/js/main.js](app/js/main.js):
 
 - **`SECTIONS`** son los accesos con tarjeta propia: el id de la app, el nombre, los colores, el
-  icono y el logo. Para saber el id de una app instalada:
+  icono. Para saber el id de una app instalada:
   `tools/luna.sh luna://com.webos.applicationManager/listApps '{}'`.
 - **El Fire Stick** es la entrada `com.webos.app.hdmi2` (HDMI 2). Cambia el número si tu aparato va
   en otra entrada.
@@ -119,9 +124,8 @@ Casi todo está al principio de [app/js/main.js](app/js/main.js):
 - **Las rutas de los iconos en la tele** están en [tools/fetch_icons.sh](tools/fetch_icons.sh).
 - **La gestión de memoria de Stremio** está en [app/homekey.py](app/homekey.py), en
   `HEAVY_SERVICES`, `IDLE_CLOSE_S` y `HUNGRY_APPS`.
-- **Las fotos del salvapantallas** son la lista `PLACES` de
-  [tools/fetch_photos.py](tools/fetch_photos.py). Ese script vuelve a generar
-  [app/js/photos.js](app/js/photos.js) con los autores y las licencias.
+- **El lugar del tiempo y del sol** se elige con [tools/weather.sh](tools/weather.sh). Los paisajes
+  y dónde va la hora en cada uno están en [app/js/scene.js](app/js/scene.js) (`DEFS`).
 
 ## Desinstalar
 
@@ -154,7 +158,8 @@ los scripts, todo vuelve a ser como lo dejó LG.
 | [app/homekey.py](app/homekey.py) | Vigilante que corre como root. Hace lo que una app web no tiene permiso para hacer (ajustes del sistema, apagar, salida de audio, memoria) y ofrece una API HTTP en `127.0.0.1:45710` para las dos apps. |
 | [app/token.sh](app/token.sh) | Crea la clave del servidor local del vigilante y se la deja a las dos apps (ver [Seguridad](#seguridad)). |
 | [app/keyfilter.js](app/keyfilter.js) | Filtro de teclas para el gestor de ventanas: el botón de fuentes abre el centro de control. |
-| [app/saverveto.js](app/saverveto.js) | Veta el salvapantallas de LG mientras se ve el del menú. |
+| [app/saverveto.js](app/saverveto.js) | Veta el salvapantallas de LG mientras el menú está delante. |
+| [app/js/scene.js](app/js/scene.js) | El paisaje de fondo, la hora, la fecha y el tiempo, dibujados en lienzos. |
 | [app/autostart.sh](app/autostart.sh) | Abre el menú al encender y deja el centro de control cargado y oculto. |
 | [tools/](tools/) | Herramientas para el PC: capturas de pantalla, llamadas a luna, mediciones de arranque, fluidez y memoria. |
 | [tests/](tests/) | Pruebas del vigilante en el PC, sin tele: `python3 -I tests/test_homekey.py`. |
@@ -242,8 +247,10 @@ Por si le ahorran tiempo a alguien que trabaje con webOS:
   idea del servicio de la tecla Home y de montar una app como Home del sistema (`as-home.sh`).
 - [webosbrew](https://www.webosbrew.org/): Homebrew Channel, RootMyTV y toda la documentación sobre
   webOS.
-- Fotos del salvapantallas: autores de Wikimedia Commons, con su nombre y licencia en
-  [app/js/photos.js](app/js/photos.js).
+- [couch-tv](https://github.com/Seagey/couch-tv) (MIT): los paisajes de fondo (generados para ese
+  proyecto y de uso libre), el recorte de su relieve, la idea de la hora detrás del paisaje y el
+  cálculo del sol. La fuente de la hora es Antonio (SIL Open Font Licence).
+- El tiempo: [Open-Meteo](https://open-meteo.com/).
 
 ## Aviso
 

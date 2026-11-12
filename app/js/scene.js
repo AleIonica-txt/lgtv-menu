@@ -235,7 +235,9 @@ const Scene = (() => {
   function paintBackground(canvas, def, photo) {
     canvas.width = W;
     canvas.height = H;
-    const g = canvas.getContext('2d', { alpha: false });
+    // willReadFrequently: el lienzo vive en memoria normal y no en la gráfica, que lo suelta
+    // mientras el menú está oculto y tarda en reconstruirlo al volver.
+    const g = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
     if (def.dim) g.filter = `brightness(${def.dim})`;
     g.drawImage(photo, 0, 0, W, H);
     g.filter = 'none';
@@ -283,7 +285,7 @@ const Scene = (() => {
       clock.width = cw;
       clock.height = ch;
     }
-    const c = clock.getContext('2d');
+    const c = clock.getContext('2d', { willReadFrequently: true });
     c.clearRect(0, 0, cw, ch);
     if (def.waterline) {
       const line = Math.round((H * def.waterline - rect.y) * scale);
