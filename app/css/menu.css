@@ -105,6 +105,23 @@ html.reduce-motion .scene-clock {
   vertical-align: -5px;
 }
 
+/* Lugar y autor de la foto: solo en reposo, pequeño, abajo a la derecha. */
+#credit {
+  position: absolute;
+  z-index: 1;
+  right: 48px;
+  bottom: 36px;
+  font-size: 22px;
+  color: rgba(255, 255, 255, 0.78);
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  transition: opacity 1.2s ease;
+}
+
+html.idle #credit {
+  opacity: 1;
+}
+
 /* Velo sobre el paisaje al bajar a la cuadrícula: las tarjetas se leen y la hora queda de fondo. */
 #scrim {
   position: absolute;

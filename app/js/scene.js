@@ -1,8 +1,8 @@
 // Fondo del menú: un paisaje a pantalla completa con la hora en grande detrás de su relieve, la
 // fecha y el tiempo. El paisaje sigue al sol (amanecer, día, atardecer, noche; de día, niebla si
 // está cubierto o llueve) o va rotando, según el ajuste "Paisaje".
-// Los paisajes, el recorte de su relieve y la idea vienen de couch-tv (github.com/Seagey/couch-tv,
-// MIT); aquí se dibujan en lienzos y no como imágenes: una imagen a pantalla completa se vuelve a
+// Los paisajes son fotos de Wikimedia Commons (tools/fetch_scenes.py); la idea de la hora detrás del
+// relieve y el cálculo del sol vienen de couch-tv (github.com/Seagey/couch-tv, MIT). Se dibujan en lienzos y no como imágenes: una imagen a pantalla completa se vuelve a
 // decodificar cada vez que se vuelve al menú (tirones de medio segundo en esta tele), un lienzo no.
 //   - Un lienzo opaco con la foto y sus sombreados, dibujado una vez por paisaje.
 //   - Un lienzo pequeño, solo en la zona de la hora: los dígitos rellenos con una copia desenfocada
@@ -101,24 +101,28 @@ const Scene = (() => {
   const FONT = 'Antonio';
   // Códigos del tiempo (WMO) con el cielo cubierto, niebla o lluvia: de día, paisaje de niebla.
   const GREY_SKY = [3, 45, 48, 51, 53, 55, 61, 63, 65, 80, 81, 82];
-  // Cada paisaje: si tiene recorte del relieve (fg), dónde va la hora (top y size en px a 1920x1080;
-  // centrada salvo "left") y cómo se rellena; la línea base de los dígitos queda en top + 0,92·size.
-  const DEFS = {
-    night: { fg: true, top: 150, size: 400, dim: 0.86, fill: 'brightness(1.15) saturate(1.2)', fillAlpha: 0.9,
-      rim: 'rgba(255, 215, 225, 0.5)', dateTop: 96, dateColor: 'rgba(255, 232, 238, 0.92)' },
-    golden: { fg: true, top: 152, size: 390, dateTop: 106 },
-    // La hora se apoya en el agua: por debajo de la línea de agua se ve desenfocada, como un reflejo.
-    water: { fg: false, top: 268, size: 420, waterline: 0.55, dateTop: 216,
-      shade: [[0, 'rgba(0, 12, 24, 0.42)'], [0.4, 'rgba(0, 12, 24, 0.12)'], [0.52, 'rgba(0, 0, 0, 0)'], [1, 'rgba(0, 20, 40, 0.5)']] },
-    fog: { fg: true, left: 96, top: 172, size: 470, fill: 'brightness(0.46) saturate(0.8) contrast(1.1)', fillAlpha: 0.8,
-      rim: 'rgba(255, 255, 255, 0.6)', sheen: false, shadow: false, dateTop: 116, dateLeft: 104, dateColor: '#16201d' },
-    dawn: { fg: true, top: 230, size: 400, dateTop: 176,
-      shade: [[0, 'rgba(50, 28, 12, 0.42)'], [0.55, 'rgba(50, 28, 12, 0)']] },
-  };
-  const ORDER = ['dawn', 'water', 'golden', 'night', 'fog'];
+  // Los paisajes vienen de scenes.js (lo genera tools/fetch_scenes.py): su momento del día (phase),
+  // dónde va la hora (top y size en px a 1920x1080; centrada salvo "left") y si el cielo es claro
+  // (dark: hora y fecha oscuras). La línea base de los dígitos queda en top + 0,92·size.
+  const DEFS = {};
+  for (const s of (typeof SCENES === 'undefined' ? [] : SCENES)) {
+    DEFS[s.id] = { ...s, fg: true, dateTop: Math.max(40, s.top - 58),
+      ...(s.dark
+        ? { fill: 'brightness(0.46) saturate(0.8) contrast(1.1)', fillAlpha: 0.8, rim: 'rgba(255, 255, 255, 0.6)',
+          sheen: false, shadow: false, dateColor: '#16201d', dateLeft: s.left ? s.left + 8 : 0 }
+        : { fill: 'brightness(1.15) saturate(1.2)', fillAlpha: 0.9, dateLeft: s.left ? s.left + 8 : 0 }) };
+  }
+  const ORDER = Object.keys(DEFS);
+  // Paisajes de un momento del día; si hay varios, se alternan por días.
+  function ofPhase(phase) {
+    const ids = ORDER.filter((id) => DEFS[id].phase === phase);
+    if (!ids.length) return phase === 'grey' ? ofPhase('day') : ORDER[0];
+    return ids[Math.floor(Date.now() / 86400000) % ids.length];
+  }
 
   const box = document.getElementById('scene');
   const dateline = document.getElementById('dateline');
+  const credit = document.getElementById('credit');  // lugar y autor de la foto, visible en reposo
   // Dos juegos de lienzos para fundir un paisaje con el siguiente; el que no se ve queda en 1x1.
   const sets = [0, 1].map(() => {
     const bg = document.createElement('canvas');
@@ -143,6 +147,7 @@ const Scene = (() => {
   let clockTimer;
   let retryTimer;
   let font;
+  let forced = null;     // paisaje fijado para pruebas ({"scene": "night1"})
 
   function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -172,6 +177,7 @@ const Scene = (() => {
 
   function wanted() {
     const now = new Date();
+    if (forced) return forced;
     if (mode === 'rotate') {
       if (Date.now() - rotateAt >= ROTATE_MS) {
         rotateAt = Date.now();
@@ -187,9 +193,9 @@ const Scene = (() => {
       const h = now.getHours();
       phase = h >= 5 && h < 8 ? 'dawn' : h >= 8 && h < 16 ? 'day' : h >= 16 && h < 19 ? 'golden' : 'night';
     }
-    if (phase !== 'day') return phase;
+    if (phase !== 'day') return ofPhase(phase);
     const w = Weather.current();
-    return w && GREY_SKY.includes(w.code) ? 'fog' : 'water';
+    return ofPhase(w && GREY_SKY.includes(w.code) ? 'grey' : 'day');
   }
 
   // ---- Dibujo ----
@@ -327,7 +333,8 @@ const Scene = (() => {
     dateline.style.color = def.dateColor || '';
     dateline.style.textAlign = def.dateLeft ? 'left' : '';
     dateline.style.left = def.dateLeft ? `${def.dateLeft}px` : '';
-    dateline.classList.toggle('plain', !!def.dateLeft && def.dateColor === '#16201d');
+    dateline.classList.toggle('plain', !!def.dark);
+    credit.textContent = def.author ? `${def.place} · ${def.author} · ${def.license}` : '';
   }
 
   // Carga un paisaje en el juego de lienzos libre y lo funde sobre el actual.
@@ -436,5 +443,12 @@ const Scene = (() => {
     }
   }
 
-  return { init, configure };
+  // Pruebas: fija un paisaje por su id (o null para volver al que toque).
+  function force(id) {
+    forced = DEFS[id] ? id : null;
+    lastInput = visibleSince = 0;
+    update();
+  }
+
+  return { init, configure, force };
 })();

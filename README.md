@@ -57,11 +57,15 @@ nano tv-ip            # pon la IP de tu tele
 ssh -i ~/.ssh/lgtv root@$(cat tv-ip) uname -a   # comprueba que entras
 ```
 
-**2. Iconos y lugar.** Los iconos de las apps no se incluyen en el repositorio porque son marcas.
+**2. Iconos, paisajes y lugar.** Los iconos de las apps (marcas) y las fotos de los paisajes
+(licencias que piden citar al autor) no se incluyen en el repositorio: cada cual los genera.
 
 ```sh
 tools/fetch_icons.sh               # copia de tu tele los iconos de las apps del menú (app/icons/)
+python3 -I tools/fetch_scenes.py   # descarga los paisajes de Wikimedia Commons (app/scenes/)
 ```
+
+`fetch_scenes.py` necesita `python3-pil` (Pillow). Sin paisajes, el menú funciona con fondo liso.
 
 Si no tienes alguna app, el script avisa y la tarjeta se verá con su color. Lo mejor es quitar esa
 app de `SECTIONS` (ver [Personalizar](#personalizar)).
@@ -124,8 +128,11 @@ Casi todo está al principio de [app/js/main.js](app/js/main.js):
 - **Las rutas de los iconos en la tele** están en [tools/fetch_icons.sh](tools/fetch_icons.sh).
 - **La gestión de memoria de Stremio** está en [app/homekey.py](app/homekey.py), en
   `HEAVY_SERVICES`, `IDLE_CLOSE_S` y `HUNGRY_APPS`.
-- **El lugar del tiempo y del sol** se elige con [tools/weather.sh](tools/weather.sh). Los paisajes
-  y dónde va la hora en cada uno están en [app/js/scene.js](app/js/scene.js) (`DEFS`).
+- **El lugar del tiempo y del sol** se elige con [tools/weather.sh](tools/weather.sh).
+- **Los paisajes** son la lista `SCENES` de [tools/fetch_scenes.py](tools/fetch_scenes.py): dos fotos
+  por momento del día (noche, amanecer, día, día cubierto y atardecer), que se alternan por días. El
+  script recorta el cielo de cada foto para que la hora quede detrás del relieve, decide dónde va y
+  genera [app/js/scenes.js](app/js/scenes.js) con el lugar, el autor y la licencia.
 
 ## Desinstalar
 
@@ -247,9 +254,10 @@ Por si le ahorran tiempo a alguien que trabaje con webOS:
   idea del servicio de la tecla Home y de montar una app como Home del sistema (`as-home.sh`).
 - [webosbrew](https://www.webosbrew.org/): Homebrew Channel, RootMyTV y toda la documentación sobre
   webOS.
-- [couch-tv](https://github.com/Seagey/couch-tv) (MIT): los paisajes de fondo (generados para ese
-  proyecto y de uso libre), el recorte de su relieve, la idea de la hora detrás del paisaje y el
+- [couch-tv](https://github.com/Seagey/couch-tv) (MIT): la idea de la hora detrás del paisaje y el
   cálculo del sol. La fuente de la hora es Antonio (SIL Open Font Licence).
+- Paisajes: fotos destacadas de Wikimedia Commons; el lugar, el autor y la licencia de cada una
+  están en [app/js/scenes.js](app/js/scenes.js) y el menú los muestra en reposo.
 - El tiempo: [Open-Meteo](https://open-meteo.com/).
 
 ## Aviso

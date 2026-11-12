@@ -950,7 +950,7 @@ const Bench = (() => {
 //   {"action": "tv"} pulsa ese acceso; {"focus": "netflix"} solo lo enfoca;
 //   {"keys": ["down", "ok", "back"]} simula teclas del mando (las teclas inyectadas no llegan a la app);
 //   {"saver": true} esconde el menú como en reposo; {"resetOrder": true} vuelve al orden por defecto;
-//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo;
+//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo; {"scene": "night1"} fija un paisaje;
 //   {"debug": ["minimal"]} activa variantes de prueba (clases dbg-* en la página).
 // Con "keys" o "bench" el menú no suena (son pruebas).
 const KEY_NAMES = { left: KEY.LEFT, up: KEY.UP, right: KEY.RIGHT, down: KEY.DOWN, ok: KEY.OK, back: KEY.BACK };
@@ -981,6 +981,7 @@ function applyParams(params) {
   }
   if (params.bench) Bench.run(typeof params.bench === 'object' ? params.bench : {});
   if (params.saver) Saver.start();
+  if ('scene' in params) Scene.force(params.scene);
   (Array.isArray(params.keys) ? params.keys : []).forEach((name, i) => setTimeout(() => handleKey(KEY_NAMES[name]), 400 * (i + 1)));
 }
 
