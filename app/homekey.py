@@ -99,6 +99,12 @@ TUNE_MEMORY_DELAY = 45  # s tras arrancar el vigilante: que el arranque de la te
 # Nunca se cierran: el menú (Home) y los ayudantes de la TDT que LG mantiene vivos a propósito.
 NEVER_CLOSE = {"com.webos.app.home", "com.webos.app.livehbbtv", "com.webos.app.livedmost",
                "com.webos.app.liveibb"}
+# Precargas de LG: el preloadmanager abre en segundo plano las apps de esta lista en cuanto hay
+# memoria, y LG la va ampliando según el uso (Netflix, YouTube, Prime, las entradas HDMI...). Si se
+# aplicó tools/tv-tune.sh (existe TUNE_ORIG), cada arranque se deja otra vez en PRELOAD_KEEP.
+PRELOAD_CONF = "/var/preferences/webos-preload-manager-conf.json"
+PRELOAD_KEEP = {"com.webos.app.home": True, "com.webos.app.livetv": True}
+TUNE_ORIG = "/var/lib/webosbrew/tvmenu-tune.orig"
 KEYFILTERS = "com.webos.surfacemanager.keyFilters"
 KEYFILTERS_ORIG = "/var/lib/webosbrew/tvmenu-keyfilters.orig.json"
 KEYFILTER_STAMP = "/tmp/tvmenu-keyfilter.stamp"  # versión de keyfilter.js ya cargada (se borra al reiniciar)
@@ -616,8 +622,36 @@ def tune_memory():
         time.sleep(3)
         seen = luna("luna://com.webos.memorymanager/getConfigs", {}).get("EfsTarget") or []
     set_required_memory()
+    trim_preloads()
     ok = all(app in seen for app in HUNGRY_APPS)
     log("memoria: %s en la lista EFS de LG: %s" % (", ".join(sorted(HUNGRY_APPS)), "sí" if ok else "NO"))
+
+
+# Devuelve la lista de precarga a la corta (solo el menú y la TDT) si LG la ha ampliado, y cierra las
+# apps que había precargado por ella (salvo la que se esté viendo). Solo al arrancar el vigilante:
+# LG reinicia la tele cada noche en reposo, así que se aplica a diario sin molestar mientras se usa.
+def trim_preloads():
+    if not os.path.isdir(TUNE_ORIG):
+        return
+    try:
+        with open(PRELOAD_CONF) as f:
+            conf = json.load(f)
+    except (OSError, ValueError):
+        return
+    allowed = conf.get("allowedApps") if isinstance(conf, dict) else None
+    if not isinstance(allowed, dict) or allowed == PRELOAD_KEEP:
+        return
+    extra = [app for app in allowed if app not in PRELOAD_KEEP]
+    conf["allowedApps"] = dict(PRELOAD_KEEP)
+    with open(PRELOAD_CONF + ".tmp", "w") as f:
+        json.dump(conf, f)
+    os.replace(PRELOAD_CONF + ".tmp", PRELOAD_CONF)
+    subprocess.run(["systemctl", "restart", "preload-manager"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    fg = foreground[0] or luna("luna://com.webos.applicationManager/getForegroundAppInfo", {}).get("appId", "")
+    running = {a.get("id") for a in luna("luna://com.webos.applicationManager/running", {}).get("running", [])}
+    closed = [app for app in extra if app in running and app != fg
+              and luna("luna://com.webos.applicationManager/closeByAppId", {"id": app}).get("returnValue")]
+    log("precargas de LG recortadas (quitadas: %s; cerradas: %s)" % (", ".join(extra), ", ".join(closed) or "ninguna"))
 
 
 def set_required_memory():
