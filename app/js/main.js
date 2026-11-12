@@ -83,7 +83,6 @@ const DIR_KEYS = { 37: 'left', 38: 'up', 39: 'right', 40: 'down' };
 const EASE = 'cubic-bezier(0.2, 0.8, 0.2, 1)';
 const REPEAT_MS = 140;  // ritmo máximo al mantener una flecha pulsada
 const SAVER_OPTIONS = [3, 5, 10, 0];  // minutos sin usar el mando hasta esconder el menú (0 = nunca)
-const SCENE_MODES = ['sun', 'rotate'];
 // as-home.sh monta una copia del menú como Home del sistema (com.webos.app.home).
 const AS_HOME = location.pathname.includes('/com.webos.app.home/');
 
@@ -160,8 +159,8 @@ const Prefs = {
   },
 };
 
-// weatherPlace/Lat/Lon: el lugar del tiempo y del sol; lo guarda tools/weather.sh desde el PC.
-const DEFAULT_SETTINGS = { reduceMotion: false, sounds: true, saverMinutes: 3, sceneMode: 'sun',
+// weatherPlace/Lat/Lon: el lugar del tiempo; lo guarda tools/weather.sh desde el PC.
+const DEFAULT_SETTINGS = { reduceMotion: false, sounds: true, saverMinutes: 3,
   weather: true, weatherPlace: '', weatherLat: 0, weatherLon: 0 };
 
 // Los ajustes guardados que son del tipo que toca; el resto, por defecto.
@@ -171,7 +170,6 @@ function cleanSettings(saved) {
     if (typeof saved[key] === typeof DEFAULT_SETTINGS[key]) out[key] = saved[key];
   }
   if (!SAVER_OPTIONS.includes(out.saverMinutes)) out.saverMinutes = DEFAULT_SETTINGS.saverMinutes;
-  if (!SCENE_MODES.includes(out.sceneMode)) out.sceneMode = DEFAULT_SETTINGS.sceneMode;
   if (!(Math.abs(out.weatherLat) <= 90 && Math.abs(out.weatherLon) <= 180)) out.weatherPlace = '';
   return out;
 }
@@ -184,7 +182,7 @@ function applySettings(overrides = {}) {
   Sound.setEnabled(settings.sounds && !overrides.mute);
   Saver.setMinutes(settings.saverMinutes);
   const place = settings.weatherPlace ? { lat: settings.weatherLat, lon: settings.weatherLon } : null;
-  Scene.configure({ mode: settings.sceneMode, place, weather: settings.weather });
+  Scene.configure({ place, weather: settings.weather });
 }
 
 // ---- Todas las apps instaladas (launch points de webOS) ----
@@ -508,7 +506,6 @@ const SettingsPanel = (() => {
     value('sounds').textContent = yesNo(settings.sounds);
     value('saver').textContent = settings.saverMinutes ? `${settings.saverMinutes} min` : 'Nunca';
     value('reduceMotion').textContent = yesNo(settings.reduceMotion);
-    value('scene').textContent = settings.sceneMode === 'sun' ? 'Según el sol' : 'Cambia cada 10 min';
     value('weather').textContent = !settings.weatherPlace ? 'Sin lugar'
       : settings.weather ? settings.weatherPlace : 'No';
     value('home').textContent = menuIsHome === null ? 'No disponible' : menuIsHome ? 'Mi Menú' : 'Inicio de LG';
@@ -549,11 +546,6 @@ const SettingsPanel = (() => {
     save(settings.saverMinutes > 0);
   }
 
-  function cycleScene() {
-    settings.sceneMode = SCENE_MODES[(SCENE_MODES.indexOf(settings.sceneMode) + 1) % SCENE_MODES.length];
-    save(true);
-  }
-
   // El lugar se elige desde el PC (hace falta un teclado para buscarlo); aquí se enciende o apaga.
   function toggleWeather() {
     if (settings.weatherPlace) toggle('weather');
@@ -589,7 +581,7 @@ const SettingsPanel = (() => {
     if (!AS_HOME) Luna.launch('com.webos.app.home');
   }
 
-  return { open, toggle, cycleSaver, cycleScene, toggleWeather, home, setHome };
+  return { open, toggle, cycleSaver, toggleWeather, home, setHome };
 })();
 
 // ---- Modo reordenar: OK coge/suelta una tarjeta y las flechas la mueven por su fila o a otra ----
@@ -728,66 +720,10 @@ const Reorder = (() => {
   return { start, exit, toggleHold, move, back, active: () => active };
 })();
 
-// ---- Ver los paisajes: el menú se esconde y ←/→ pasan de una foto a otra; Atrás sale ----
-
-const Gallery = (() => {
-  const banner = document.getElementById('banner');
-  let items = [];
-  let index = 0;
-  let active = false;
-
-  function showCurrent() {
-    const it = items[index];
-    Scene.force(it.id);
-    banner.textContent = `‹  ${index + 1} de ${items.length} · ${it.phase}  ›     Atrás para salir`;
-  }
-
-  function start() {
-    items = Scene.list();
-    if (!items.length) {
-      toast('No hay paisajes: descárgalos con tools/fetch_scenes.py');
-      return;
-    }
-    Overlay.closeAll();
-    active = true;
-    index = Math.max(0, items.findIndex((it) => it.id === Scene.shown()));
-    root.classList.add('gallery');
-    banner.classList.add('on');
-    showCurrent();
-    Sound.play('select');
-  }
-
-  function exit() {
-    if (!active) return false;
-    active = false;
-    root.classList.remove('gallery');
-    banner.classList.remove('on');
-    Scene.force(null);
-    return true;
-  }
-
-  // Devuelve true si la tecla era para la galería.
-  function key(code) {
-    if (!active) return false;
-    if (code === KEY.LEFT || code === KEY.RIGHT) {
-      index = (index + (code === KEY.RIGHT ? 1 : items.length - 1)) % items.length;
-      showCurrent();
-      Sound.play('move');
-    } else if (code === KEY.BACK || code === KEY.OK) {
-      exit();
-      Sound.play('back');
-    }
-    return true;
-  }
-
-  return { start, exit, key };
-})();
-
 // ---- Acciones ----
 
 const COMMANDS = {
   settings: () => SettingsPanel.open(),
-  gallery: () => Gallery.start(),
   reorder: () => {
     Overlay.close(true);
     Reorder.start();
@@ -796,7 +732,6 @@ const COMMANDS = {
   sounds: () => SettingsPanel.toggle('sounds'),
   saver: () => SettingsPanel.cycleSaver(),
   reduceMotion: () => SettingsPanel.toggle('reduceMotion'),
-  scene: () => SettingsPanel.cycleScene(),
   weather: () => SettingsPanel.toggleWeather(),
   home: () => SettingsPanel.home(),
   lgHome: () => SettingsPanel.setHome(false),
@@ -836,7 +771,6 @@ let lastDockSlot = null;
 // Vuelve a la pantalla principal (Home, o Atrás desde la cuadrícula): cierra overlays, sale del
 // modo reordenar y deja el foco en el Dock donde estaba.
 function goHome() {
-  Gallery.exit();
   Overlay.closeAll();
   Reorder.exit();
   Focus.reset();
@@ -877,7 +811,6 @@ let lastMove = 0;
 
 // Gestiona una tecla del mando; devuelve true si la ha usado.
 function handleKey(code, repeat = false) {
-  if (Gallery.key(code)) return true;
   const dir = DIR_KEYS[code];
   if (dir) {
     const now = performance.now();
@@ -1008,7 +941,7 @@ const Bench = (() => {
 //   {"action": "tv"} pulsa ese acceso; {"focus": "netflix"} solo lo enfoca;
 //   {"keys": ["down", "ok", "back"]} simula teclas del mando (las teclas inyectadas no llegan a la app);
 //   {"saver": true} esconde el menú como en reposo; {"resetOrder": true} vuelve al orden por defecto;
-//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo; {"scene": "night1"} fija un paisaje; {"gallery": true} abre "Ver los paisajes";
+//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo;
 //   {"debug": ["minimal"]} activa variantes de prueba (clases dbg-* en la página).
 // Con "keys" o "bench" el menú no suena (son pruebas).
 const KEY_NAMES = { left: KEY.LEFT, up: KEY.UP, right: KEY.RIGHT, down: KEY.DOWN, ok: KEY.OK, back: KEY.BACK };
@@ -1039,8 +972,6 @@ function applyParams(params) {
   }
   if (params.bench) Bench.run(typeof params.bench === 'object' ? params.bench : {});
   if (params.saver) Saver.start();
-  if ('scene' in params) Scene.force(params.scene);
-  if (params.gallery) Gallery.start();
   (Array.isArray(params.keys) ? params.keys : []).forEach((name, i) => setTimeout(() => handleKey(KEY_NAMES[name]), 400 * (i + 1)));
 }
 

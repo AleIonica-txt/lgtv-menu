@@ -1,10 +1,9 @@
-// Fondo del menú: un paisaje a pantalla completa con la hora en grande detrás de su relieve, la
-// fecha y el tiempo. El paisaje sigue al sol (amanecer, día, atardecer, noche; de día, niebla si
-// está cubierto o llueve) o va rotando, según el ajuste "Paisaje".
-// Los paisajes son fotos de Wikimedia Commons (tools/fetch_scenes.py); la idea de la hora detrás del
-// relieve y el cálculo del sol vienen de couch-tv (github.com/Seagey/couch-tv, MIT). Se dibujan en lienzos y no como imágenes: una imagen a pantalla completa se vuelve a
-// decodificar cada vez que se vuelve al menú (tirones de medio segundo en esta tele), un lienzo no.
-//   - Un lienzo opaco con la foto y sus sombreados, dibujado una vez por paisaje.
+// Fondo del menú: el bosque con niebla a pantalla completa, con la hora en grande detrás de las
+// colinas, la fecha y el tiempo. El paisaje, el recorte de su relieve y la idea vienen de couch-tv
+// (github.com/Seagey/couch-tv, MIT; el paisaje se generó para ese proyecto y es de uso libre).
+// Se dibuja en lienzos y no como imagen: una imagen a pantalla completa se vuelve a decodificar
+// cada vez que se vuelve al menú (tirones de medio segundo en esta tele), un lienzo no.
+//   - Un lienzo opaco con la foto, dibujado una sola vez.
 //   - Un lienzo pequeño, solo en la zona de la hora: los dígitos rellenos con una copia desenfocada
 //     de la foto ("cristal") y, encima, el relieve recortado. Se redibuja una vez por minuto.
 
@@ -95,59 +94,26 @@ const Weather = (() => {
 const Scene = (() => {
   const W = 1920;
   const H = 1080;
-  const PAD = 48;                    // margen del lienzo de la hora (para su sombra)
-  const ROTATE_MS = 10 * 60000;      // modo "rotar": un paisaje cada 10 minutos
-  const QUIET_MS = 5000;             // el paisaje no cambia mientras se usa el mando (cuesta un tirón)
+  const PAD = 48;  // margen del lienzo de la hora
   const FONT = 'Antonio';
-  // Códigos del tiempo (WMO) con el cielo cubierto, niebla o lluvia: de día, paisaje de niebla.
-  const GREY_SKY = [3, 45, 48, 51, 53, 55, 61, 63, 65, 80, 81, 82];
-  // Los paisajes vienen de scenes.js (lo genera tools/fetch_scenes.py): su momento del día (phase),
-  // dónde va la hora (top y size en px a 1920x1080; centrada salvo "left") y si el cielo es claro
-  // (dark: hora y fecha oscuras). La línea base de los dígitos queda en top + 0,92·size.
-  const DEFS = {};
-  for (const s of (typeof SCENES === 'undefined' ? [] : SCENES)) {
-    DEFS[s.id] = { ...s, fg: true, dateTop: Math.max(40, s.top - 58),
-      ...(s.dark
-        ? { fill: 'brightness(0.46) saturate(0.8) contrast(1.1)', fillAlpha: 0.8, rim: 'rgba(255, 255, 255, 0.6)',
-          sheen: false, shadow: false, dateColor: '#16201d', dateLeft: s.left ? s.left + 8 : 0 }
-        : { fill: 'brightness(1.15) saturate(1.2)', fillAlpha: 0.9, dateLeft: s.left ? s.left + 8 : 0 }) };
-  }
-  const ORDER = Object.keys(DEFS);
-  // Paisajes de un momento del día; si hay varios, se alternan por días.
-  function ofPhase(phase) {
-    const ids = ORDER.filter((id) => DEFS[id].phase === phase);
-    if (!ids.length) return phase === 'grey' ? ofPhase('day') : ORDER[0];
-    return ids[Math.floor(Date.now() / 86400000) % ids.length];
-  }
+  // Dónde va la hora (px a 1920x1080; la línea base de los dígitos queda en top + 0,92·size) y
+  // cómo se rellena: oscura sobre el cielo claro de la niebla, con un borde de luz.
+  const CLOCK = { left: 96, top: 172, size: 470, fill: 'brightness(0.46) saturate(0.8) contrast(1.1)',
+    fillAlpha: 0.8, rim: 'rgba(255, 255, 255, 0.6)' };
 
   const box = document.getElementById('scene');
   const dateline = document.getElementById('dateline');
-  const credit = document.getElementById('credit');  // lugar y autor de la foto, visible en reposo
-  // Dos juegos de lienzos para fundir un paisaje con el siguiente; el que no se ve queda en 1x1.
-  const sets = [0, 1].map(() => {
-    const bg = document.createElement('canvas');
-    const clock = document.createElement('canvas');
-    bg.className = 'scene-bg';
-    clock.className = 'scene-clock';
-    bg.width = bg.height = clock.width = clock.height = 1;
-    box.append(bg, clock);
-    return { bg, clock, def: null, rect: null, glass: null, fg: null };
-  });
+  const bg = document.createElement('canvas');
+  const clock = document.createElement('canvas');
+  bg.className = 'scene-bg';
+  clock.className = 'scene-clock';
+  box.append(bg, clock);
   const scale = Math.min(2, window.devicePixelRatio || 1);  // la tele pinta a 4K: dígitos nítidos
-  let front = 0;
-  let shown = null;      // nombre del paisaje en pantalla
-  let loading = false;
+  let rect = null;   // zona de la hora
+  let glass = null;  // trozo desenfocado de la foto con que se rellenan los dígitos
+  let fg = null;     // trozo del relieve que va por delante de la hora
   let hm = '';
-  let mode = 'sun';
-  let place = null;      // { lat, lon } para el sol
-  let rotateAt = Date.now();
-  let rotateIndex = 0;
-  let lastInput = 0;
-  let visibleSince = 0;
   let clockTimer;
-  let retryTimer;
-  let font;
-  let forced = null;     // paisaje fijado para pruebas ({"scene": "night1"})
 
   function loadImage(src) {
     return new Promise((resolve, reject) => {
@@ -158,68 +124,26 @@ const Scene = (() => {
     });
   }
 
-  // ---- Qué paisaje toca ----
-
-  // Altura del sol sobre el horizonte, en grados, y si es antes del mediodía solar.
-  function sun(lat, lon, d) {
-    const start = Date.UTC(d.getUTCFullYear(), 0, 0);
-    const day = Math.floor((d - start) / 86400000);
-    const b = (360 / 365.25) * (day - 81) * (Math.PI / 180);
-    const eot = 9.87 * Math.sin(2 * b) - 7.53 * Math.cos(b) - 1.5 * Math.sin(b);
-    const decl = 23.45 * Math.sin(b) * (Math.PI / 180);
-    const utc = d.getUTCHours() + d.getUTCMinutes() / 60;
-    const solarTime = (utc + lon / 15 + eot / 60 + 24) % 24;
-    const hourAngle = (solarTime - 12) * 15 * (Math.PI / 180);
-    const la = lat * (Math.PI / 180);
-    const sin = Math.sin(la) * Math.sin(decl) + Math.cos(la) * Math.cos(decl) * Math.cos(hourAngle);
-    return { alt: Math.asin(Math.max(-1, Math.min(1, sin))) * (180 / Math.PI), morning: hourAngle < 0 };
-  }
-
-  function wanted() {
-    const now = new Date();
-    if (forced) return forced;
-    if (mode === 'rotate') {
-      if (Date.now() - rotateAt >= ROTATE_MS) {
-        rotateAt = Date.now();
-        rotateIndex += 1;
-      }
-      return ORDER[rotateIndex % ORDER.length];
-    }
-    let phase;
-    if (place) {
-      const s = sun(place.lat, place.lon, now);
-      phase = s.alt < -6 ? 'night' : s.alt < 10 ? (s.morning ? 'dawn' : 'golden') : 'day';
-    } else {  // sin lugar: por la hora del reloj
-      const h = now.getHours();
-      phase = h >= 5 && h < 8 ? 'dawn' : h >= 8 && h < 16 ? 'day' : h >= 16 && h < 19 ? 'golden' : 'night';
-    }
-    if (phase !== 'day') return ofPhase(phase);
-    const w = Weather.current();
-    return ofPhase(w && GREY_SKY.includes(w.code) ? 'grey' : 'day');
-  }
-
-  // ---- Dibujo ----
-
-  function clockFont(g, def) {
-    g.font = `300 ${def.size}px ${FONT}, "Arial Narrow", sans-serif`;
-    g.letterSpacing = `${-0.02 * def.size}px`;
+  function clockFont(g) {
+    g.font = `300 ${CLOCK.size}px ${FONT}, "Arial Narrow", sans-serif`;
+    g.letterSpacing = `${-0.02 * CLOCK.size}px`;
     g.textBaseline = 'alphabetic';
-    g.textAlign = def.left === undefined ? 'center' : 'left';
+    g.textAlign = 'left';
   }
 
   // Zona de la pantalla que ocupa la hora (con margen), para cualquier combinación de dígitos.
-  function clockRect(def) {
+  function clockRect() {
     const g = document.createElement('canvas').getContext('2d');
-    clockFont(g, def);
+    clockFont(g);
     const digit = Math.max(...'0123456789'.split('').map((d) => g.measureText(d).width));
-    const width = Math.ceil(4 * digit + g.measureText(':').width) + 2 * PAD;
-    const x = Math.max(0, Math.round(def.left === undefined ? (W - width) / 2 : def.left - PAD));
-    const y = Math.max(0, def.top - 16);
-    return { x, y, w: Math.min(width, W - x), h: Math.round(def.top + 0.92 * def.size + PAD) - y };
+    const x = CLOCK.left - PAD;
+    const y = CLOCK.top - 16;
+    const w = Math.min(W - x, Math.ceil(4 * digit + g.measureText(':').width) + 2 * PAD);
+    return { x, y, w, h: Math.round(CLOCK.top + 0.92 * CLOCK.size + PAD) - y };
   }
 
   // El trozo de una imagen de pantalla completa que cae en la zona de la hora, en un lienzo propio.
-  function crop(img, rect, filter) {
+  function crop(img, filter) {
     const c = document.createElement('canvas');
     c.width = rect.w;
     c.height = rect.h;
@@ -231,177 +155,56 @@ const Scene = (() => {
     return c;
   }
 
-  function gradient(g, stops) {
-    const grad = g.createLinearGradient(0, 0, 0, H);
-    for (const [at, color] of stops) grad.addColorStop(at, color);
+  function paintBackground(photo) {
+    bg.width = W;
+    bg.height = H;
+    // willReadFrequently: el lienzo vive en memoria normal y no en la gráfica, que lo suelta
+    // mientras el menú está oculto y tarda en reconstruirlo al volver.
+    const g = bg.getContext('2d', { alpha: false, willReadFrequently: true });
+    g.drawImage(photo, 0, 0, W, H);
+    const grad = g.createLinearGradient(0, 0, 0, H);  // para que el Dock se lea
+    grad.addColorStop(0.6, 'rgba(0, 0, 0, 0)');
+    grad.addColorStop(1, 'rgba(0, 0, 0, 0.5)');
     g.fillStyle = grad;
     g.fillRect(0, 0, W, H);
   }
 
-  function paintBackground(canvas, def, photo) {
-    canvas.width = W;
-    canvas.height = H;
-    // willReadFrequently: el lienzo vive en memoria normal y no en la gráfica, que lo suelta
-    // mientras el menú está oculto y tarda en reconstruirlo al volver.
-    const g = canvas.getContext('2d', { alpha: false, willReadFrequently: true });
-    if (def.dim) g.filter = `brightness(${def.dim})`;
-    g.drawImage(photo, 0, 0, W, H);
-    g.filter = 'none';
-    if (def.shade) gradient(g, def.shade);
-    gradient(g, [[0.6, 'rgba(0, 0, 0, 0)'], [1, 'rgba(0, 0, 0, 0.5)']]);  // para que el Dock se lea
-  }
-
-  // Dibuja la hora en el lienzo de un juego: dígitos de cristal, su sombra y el relieve por delante.
-  function drawClock(set) {
-    const { def, rect, clock } = set;
-    if (!def || !hm) return;
+  // La hora: dígitos de cristal con un borde de luz y el relieve por delante.
+  function drawClock() {
+    if (!rect || !hm) return;
     const cw = Math.round(rect.w * scale);
     const ch = Math.round(rect.h * scale);
-    const x = (def.left === undefined ? W / 2 : def.left) - rect.x;
-    const y = def.top + 0.92 * def.size - rect.y;
-
-    // Los dígitos, aparte: relleno de cristal, brillo y borde de luz.
-    const ink = document.createElement('canvas');
-    ink.width = cw;
-    ink.height = ch;
-    const g = ink.getContext('2d');
-    g.scale(scale, scale);
-    clockFont(g, def);
-    g.fillText(hm, x, y);
-    g.globalCompositeOperation = 'source-in';
-    g.globalAlpha = def.fillAlpha || 1;
-    g.drawImage(set.glass, 0, 0, rect.w, rect.h);
-    g.globalAlpha = 1;
-    if (def.sheen !== false) {
-      g.globalCompositeOperation = 'source-atop';
-      const sheen = g.createLinearGradient(0, 0, rect.w * 0.35, rect.h);
-      sheen.addColorStop(0, 'rgba(255, 255, 255, 0.55)');
-      sheen.addColorStop(0.38, 'rgba(255, 255, 255, 0)');
-      sheen.addColorStop(0.7, 'rgba(255, 255, 255, 0)');
-      sheen.addColorStop(1, 'rgba(255, 255, 255, 0.22)');
-      g.fillStyle = sheen;
-      g.fillRect(0, 0, rect.w, rect.h);
-    }
-    g.globalCompositeOperation = 'source-over';
-    g.lineWidth = 1.5;
-    g.strokeStyle = def.rim || 'rgba(255, 255, 255, 0.55)';
-    g.strokeText(hm, x, y);
-
+    const x = CLOCK.left - rect.x;
+    const y = CLOCK.top + 0.92 * CLOCK.size - rect.y;
     if (clock.width !== cw || clock.height !== ch) {
       clock.width = cw;
       clock.height = ch;
     }
-    const c = clock.getContext('2d', { willReadFrequently: true });
-    c.clearRect(0, 0, cw, ch);
-    if (def.waterline) {
-      const line = Math.round((H * def.waterline - rect.y) * scale);
-      c.drawImage(ink, 0, 0, cw, line, 0, 0, cw, line);
-      c.save();
-      c.beginPath();
-      c.rect(0, line, cw, ch - line);
-      c.clip();
-      c.filter = `blur(${2.2 * scale}px)`;
-      c.globalAlpha = 0.78;
-      c.drawImage(ink, 5 * scale, 0);
-      c.restore();
-    } else {
-      c.drawImage(ink, 0, 0);
-    }
-    if (def.shadow !== false) {
-      // Solo la sombra: los dígitos se dibujan fuera del lienzo y su sombra cae dentro, por debajo.
-      c.save();
-      c.globalCompositeOperation = 'destination-over';
-      c.shadowColor = 'rgba(0, 0, 0, 0.16)';
-      c.shadowBlur = 28 * scale;
-      c.shadowOffsetX = 2 * cw;
-      c.shadowOffsetY = 6 * scale;
-      c.drawImage(ink, -2 * cw, 0);
-      c.restore();
-    }
-    if (set.fg) c.drawImage(set.fg, 0, 0, cw, ch);
-    ink.width = ink.height = 0;  // suelta su memoria ya
+    const g = clock.getContext('2d', { willReadFrequently: true });
+    g.setTransform(1, 0, 0, 1, 0, 0);
+    g.clearRect(0, 0, cw, ch);
+    g.scale(scale, scale);
+    clockFont(g);
+    g.fillText(hm, x, y);
+    g.globalCompositeOperation = 'source-in';
+    g.globalAlpha = CLOCK.fillAlpha;
+    g.drawImage(glass, 0, 0, rect.w, rect.h);
+    g.globalAlpha = 1;
+    g.globalCompositeOperation = 'source-over';
+    g.lineWidth = 1.5;
+    g.strokeStyle = CLOCK.rim;
+    g.strokeText(hm, x, y);
+    g.drawImage(fg, 0, 0, rect.w, rect.h);
   }
 
   function drawDate() {
-    const def = sets[front].def;
-    if (!def) return;
     const date = new Date().toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'long' }).replace(',', '');
     const w = Weather.current();
     dateline.querySelector('.date').textContent = date.charAt(0).toUpperCase() + date.slice(1);
     dateline.querySelector('.wx').innerHTML = w ? Weather.html(w) : '';
-    dateline.style.top = `${def.dateTop}px`;
-    dateline.style.color = def.dateColor || '';
-    dateline.style.textAlign = def.dateLeft ? 'left' : '';
-    dateline.style.left = def.dateLeft ? `${def.dateLeft}px` : '';
-    dateline.classList.toggle('plain', !!def.dark);
-    credit.textContent = def.author ? `${def.place} · ${def.author} · ${def.license}` : '';
   }
 
-  // Carga un paisaje en el juego de lienzos libre y lo funde sobre el actual.
-  async function show(name) {
-    if (loading || name === shown) return;
-    loading = true;
-    try {
-      const def = DEFS[name];
-      const [photo, glass, fg] = await Promise.all([
-        loadImage(`scenes/scene-${name}.jpg`),
-        loadImage(`scenes/scene-${name}-glass.jpg`),
-        def.fg ? loadImage(`scenes/scene-${name}-fg.webp`) : null,
-        font,
-      ]);
-      const prev = sets[front];
-      const next = sets[1 - front];
-      next.def = def;
-      next.rect = clockRect(def);
-      next.glass = crop(glass, next.rect, def.fill);
-      next.fg = fg ? crop(fg, next.rect, def.dim ? `brightness(${def.dim})` : '') : null;
-      paintBackground(next.bg, def, photo);
-      Object.assign(next.clock.style, { left: `${next.rect.x}px`, top: `${next.rect.y}px`,
-        width: `${next.rect.w}px`, height: `${next.rect.h}px` });
-      drawClock(next);
-      // El nuevo aparece por encima del anterior, que sigue opaco debajo hasta que acaba el fundido.
-      prev.bg.style.zIndex = 0;
-      prev.clock.style.zIndex = 1;
-      next.bg.style.zIndex = 2;
-      next.clock.style.zIndex = 3;
-      void next.bg.offsetWidth;  // aplicar la opacidad 0 antes de activar el fundido
-      next.bg.classList.add('on');
-      next.clock.classList.add('on');
-      front = 1 - front;
-      shown = name;
-      drawDate();
-      setTimeout(() => {
-        if (sets[front] === prev) return;
-        prev.bg.classList.remove('on');
-        prev.clock.classList.remove('on');
-        prev.bg.width = prev.bg.height = prev.clock.width = prev.clock.height = 1;
-        prev.def = prev.glass = prev.fg = null;
-      }, 1500);
-    } catch (e) {
-      // Falta algún fichero del paisaje: se queda el que había (o el fondo liso).
-    } finally {
-      loading = false;
-      // Si mientras cargaba se pidió otro (pasando fotos deprisa, o al salir de "Ver los paisajes"),
-      // se va a por ese.
-      setTimeout(update, 0);
-    }
-  }
-
-  // Cambia de paisaje si toca y no molesta: ni mientras se usa el mando ni nada más volver al menú.
-  function update() {
-    clearTimeout(retryTimer);
-    if (document.hidden) return;
-    const name = wanted();
-    if (name === shown) return;
-    const now = performance.now();
-    if (shown && !forced && (now - lastInput < QUIET_MS || now - visibleSince < QUIET_MS)) {
-      retryTimer = setTimeout(update, QUIET_MS);
-      return;
-    }
-    show(name);
-  }
-
-  // Una vez por minuto (y al volver a verse el menú): hora, fecha, tiempo y paisaje.
+  // Una vez por minuto (y al volver a verse el menú): hora, fecha y tiempo.
   function tick() {
     clearTimeout(clockTimer);
     if (document.hidden) return;
@@ -409,57 +212,45 @@ const Scene = (() => {
     const text = now.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
     if (text !== hm) {
       hm = text;
-      drawClock(sets[front]);
+      drawClock();
     }
     drawDate();
     Weather.refresh();
-    update();
     clockTimer = setTimeout(tick, 60000 - now.getSeconds() * 1000 - now.getMilliseconds() + 50);
   }
 
-  function init() {
+  async function init() {
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) tick();
+    });
+    Weather.onChange(drawDate);
+    tick();
     // La fuente de la hora se carga desde aquí: en el paquete el CSS va dentro del HTML y una ruta
     // relativa en @font-face no valdría para las dos formas de abrir el menú.
     const face = new FontFace(FONT, 'url(fonts/antonio-latin-300.woff2)', { weight: '300' });
-    font = face.load().then((f) => document.fonts.add(f)).catch(() => {});
-    window.addEventListener('keydown', () => { lastInput = performance.now(); }, true);
-    document.addEventListener('visibilitychange', () => {
-      if (document.hidden) return;
-      visibleSince = performance.now();
-      tick();
-    });
-    Weather.onChange(() => {
-      drawDate();
-      update();
-    });
-    tick();
+    try {
+      const [photo, glassImg, fgImg] = await Promise.all([
+        loadImage('scenes/scene-fog.jpg'),
+        loadImage('scenes/scene-fog-glass.jpg'),
+        loadImage('scenes/scene-fog-fg.webp'),
+        face.load().then((f) => document.fonts.add(f)).catch(() => {}),
+      ]);
+      rect = clockRect();
+      glass = crop(glassImg, CLOCK.fill);
+      fg = crop(fgImg, '');
+      paintBackground(photo);
+      Object.assign(clock.style, { left: `${rect.x}px`, top: `${rect.y}px`, width: `${rect.w}px`, height: `${rect.h}px` });
+      drawClock();
+      bg.classList.add('on');
+      clock.classList.add('on');
+    } catch (e) { /* falta algún fichero del paisaje: queda el fondo liso con la fecha */ }
   }
 
-  // mode: 'sun' o 'rotate'. place: { lat, lon } o null. weather: si se muestra el tiempo.
+  // place: { lat, lon } o null; weather: si se muestra el tiempo.
   function configure(next) {
-    mode = next.mode;
-    place = next.place;
     Weather.setPlace(next.weather ? next.place : null);
-    if (shown) {
-      drawDate();
-      update();
-    }
+    drawDate();
   }
 
-  // Pruebas: fija un paisaje por su id (o null para volver al que toque).
-  function force(id) {
-    forced = DEFS[id] ? id : null;
-    lastInput = visibleSince = 0;
-    update();
-  }
-
-  // Los paisajes en orden de momento del día, para recorrerlos.
-  const PHASE_ORDER = ['dawn', 'day', 'grey', 'golden', 'night'];
-  const PHASE_NAMES = { dawn: 'Amanecer', day: 'Día despejado', grey: 'Día cubierto', golden: 'Atardecer', night: 'Noche' };
-  function list() {
-    return ORDER.slice().sort((a, b) => PHASE_ORDER.indexOf(DEFS[a].phase) - PHASE_ORDER.indexOf(DEFS[b].phase))
-      .map((id) => ({ id, phase: PHASE_NAMES[DEFS[id].phase] || '', place: DEFS[id].place || '' }));
-  }
-
-  return { init, configure, force, list, shown: () => shown };
+  return { init, configure };
 })();

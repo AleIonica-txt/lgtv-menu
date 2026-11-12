@@ -46,8 +46,7 @@ html, body {
   z-index: 0;
 }
 
-/* Cada lienzo se funde por separado (un contenedor con opacidad obligaría a componer una capa de
-   pantalla completa de más). El que no se ve mide 1x1. */
+/* Los lienzos aparecen con un fundido cuando el paisaje termina de cargar. */
 .scene-bg,
 .scene-clock {
   position: absolute;
@@ -73,23 +72,17 @@ html.reduce-motion .scene-clock {
   transition-duration: 0s;
 }
 
-/* La posición y el color los pone scene.js según el paisaje. */
+/* Sobre la hora, alineada con ella y oscura sobre el cielo claro de la niebla. */
 #dateline {
   position: absolute;
   z-index: 1;
-  left: 0;
-  right: 0;
-  top: 96px;
-  text-align: center;
+  left: 104px;
+  top: 116px;
+  color: #16201d;
   white-space: nowrap;
   font-size: 34px;
   line-height: 40px;
   font-weight: 500;
-  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.25);
-}
-
-#dateline.plain {
-  text-shadow: none;
 }
 
 #dateline .wx {
@@ -103,30 +96,6 @@ html.reduce-motion .scene-clock {
   height: 30px;
   margin-right: 8px;
   vertical-align: -5px;
-}
-
-/* Lugar y autor de la foto: solo en reposo, pequeño, abajo a la derecha. */
-#credit {
-  position: absolute;
-  z-index: 1;
-  right: 48px;
-  bottom: 36px;
-  font-size: 22px;
-  color: rgba(255, 255, 255, 0.78);
-  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.6);
-  opacity: 0;
-  transition: opacity 1.2s ease;
-}
-
-html.idle #credit,
-html.gallery #credit {
-  opacity: 1;
-}
-
-/* Ver los paisajes: solo la foto, la hora, la fecha y el autor (y el aviso de arriba). */
-html.gallery #page,
-html.gallery #scrim {
-  opacity: 0;
 }
 
 /* Velo sobre el paisaje al bajar a la cuadrícula: las tarjetas se leen y la hora queda de fondo. */
@@ -422,9 +391,9 @@ html.in-grid #dateline {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 13px 36px;
+  padding: 18px 36px;
   border-radius: 24px;
-  font-size: 34px;
+  font-size: 36px;
   transition: scale var(--dur) var(--ease);
 }
 
@@ -449,8 +418,8 @@ html.in-grid #dateline {
 
 .setting small {
   display: block;
-  margin-top: 4px;
-  font-size: 26px;
+  margin-top: 6px;
+  font-size: 28px;
   color: var(--text-dim);
 }
 
@@ -514,9 +483,3 @@ html.dbg-minimal #grid {
   white-space: pre;
 }
 
-/* Al ver los paisajes, el aviso va abajo: arriba están la fecha y la hora. */
-html.gallery #banner {
-  top: auto;
-  bottom: 40px;
-  translate: -50% 0;
-}

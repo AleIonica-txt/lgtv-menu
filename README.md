@@ -1,7 +1,7 @@
 # Mi Menú: un inicio propio para teles LG webOS rooteadas
 
 > **English summary.** A custom home screen for rooted LG webOS TVs. It replaces LG's Home: you get a
-> Dock and an app grid you can reorder, a landscape background that follows the sun with a big clock and the weather, and a
+> Dock and an app grid you can reorder, a misty forest background with a big clock behind the hills and the weather, and a
 > control center opened with the remote's *Input* button (inputs, audio output, screen off, power
 > off). It also includes some memory tuning for TVs with little RAM. It works through Homebrew Channel
 > `init.d` scripts and a small root daemon, and nothing is written to the system partition: one
@@ -19,12 +19,12 @@ Mi Menú sustituye el inicio de LG por uno propio, más rápido y sin anuncios:
 - **Centro de control** con el botón de fuentes del mando. Flota sobre lo que estés viendo y permite
   cambiar de fuente (TDT o HDMI), elegir la salida de audio, apagar la pantalla o apagar la tele.
   Sustituye al selector de entradas de LG.
-- **Paisaje de fondo con la hora en grande**, detrás del relieve, la fecha y el tiempo. El paisaje
-  sigue al sol de tu ciudad: amanecer, día, atardecer y noche; de día, niebla si está cubierto.
+- **Fondo de un bosque con niebla y la hora en grande** detrás de las colinas, con la fecha y el
+  tiempo de tu ciudad.
 - **Reposo.** Tras unos minutos sin tocar el mando, el menú se esconde y queda el paisaje con la
   hora. Mientras el menú está delante, no sale el salvapantallas de LG ni su publicidad.
-- **Ajustes:** orden de las tarjetas, sonidos, reposo, paisaje, ver los paisajes a pantalla completa
-  (← y → para pasar de uno a otro), el tiempo, reducir movimiento y qué abre la tecla Home.
+- **Ajustes:** orden de las tarjetas, sonidos, reposo, el tiempo, reducir movimiento y qué abre la
+  tecla Home.
 - **Memoria.** Cierra servicios pesados que se quedan en marcha sin usarse, como el servidor de
   Stremio (~120 MB). También ajusta el gestor de memoria de LG para que las apps que consumen mucha
   memoria no se reinicien al reproducir.
@@ -57,27 +57,23 @@ nano tv-ip            # pon la IP de tu tele
 ssh -i ~/.ssh/lgtv root@$(cat tv-ip) uname -a   # comprueba que entras
 ```
 
-**2. Iconos, paisajes y lugar.** Los iconos de las apps (marcas) y las fotos de los paisajes
-(licencias que piden citar al autor) no se incluyen en el repositorio: cada cual los genera.
+**2. Iconos y lugar.** Los iconos de las apps no se incluyen en el repositorio porque son marcas.
 
 ```sh
 tools/fetch_icons.sh               # copia de tu tele los iconos de las apps del menú (app/icons/)
-python3 -I tools/fetch_scenes.py   # descarga los paisajes de Wikimedia Commons (app/scenes/)
 ```
-
-`fetch_scenes.py` necesita `python3-pil` (Pillow). Sin paisajes, el menú funciona con fondo liso.
 
 Si no tienes alguna app, el script avisa y la tarjeta se verá con su color. Lo mejor es quitar esa
 app de `SECTIONS` (ver [Personalizar](#personalizar)).
 
-Después de instalar (paso 3), elige el lugar para el tiempo y para que el paisaje siga al sol:
+Después de instalar (paso 3), elige el lugar para el tiempo:
 
 ```sh
 tools/weather.sh "Granada"         # o "Granada, ES" si hay varios con ese nombre
 ```
 
 Solo se guardan el nombre y las coordenadas redondeadas (unos 1 km), y la tele consulta el tiempo
-directamente a Open-Meteo. Sin lugar no hay tiempo y el paisaje va por la hora del reloj.
+directamente a Open-Meteo. Sin lugar, solo se muestra la fecha.
 
 **3. Compilar e instalar las dos apps** (el menú y el centro de control):
 
@@ -128,11 +124,10 @@ Casi todo está al principio de [app/js/main.js](app/js/main.js):
 - **Las rutas de los iconos en la tele** están en [tools/fetch_icons.sh](tools/fetch_icons.sh).
 - **La gestión de memoria de Stremio** está en [app/homekey.py](app/homekey.py), en
   `HEAVY_SERVICES`, `IDLE_CLOSE_S` y `HUNGRY_APPS`.
-- **El lugar del tiempo y del sol** se elige con [tools/weather.sh](tools/weather.sh).
-- **Los paisajes** son la lista `SCENES` de [tools/fetch_scenes.py](tools/fetch_scenes.py): dos fotos
-  por momento del día (noche, amanecer, día, día cubierto y atardecer), que se alternan por días. El
-  script recorta el cielo de cada foto para que la hora quede detrás del relieve, decide dónde va y
-  genera [app/js/scenes.js](app/js/scenes.js) con el lugar, el autor y la licencia.
+- **El lugar del tiempo** se elige con [tools/weather.sh](tools/weather.sh).
+- **El fondo** está en `app/scenes/`: la foto, una copia desenfocada con que se rellena la hora y el
+  recorte de las colinas que va por delante. Dónde va la hora está en `CLOCK`, en
+  [app/js/scene.js](app/js/scene.js).
 
 ## Desinstalar
 
@@ -254,10 +249,9 @@ Por si le ahorran tiempo a alguien que trabaje con webOS:
   idea del servicio de la tecla Home y de montar una app como Home del sistema (`as-home.sh`).
 - [webosbrew](https://www.webosbrew.org/): Homebrew Channel, RootMyTV y toda la documentación sobre
   webOS.
-- [couch-tv](https://github.com/Seagey/couch-tv) (MIT): la idea de la hora detrás del paisaje y el
-  cálculo del sol. La fuente de la hora es Antonio (SIL Open Font Licence).
-- Paisajes: fotos destacadas de Wikimedia Commons; el lugar, el autor y la licencia de cada una
-  están en [app/js/scenes.js](app/js/scenes.js) y el menú los muestra en reposo.
+- [couch-tv](https://github.com/Seagey/couch-tv) (MIT): el paisaje del bosque con niebla (generado
+  para ese proyecto y de uso libre), el recorte de sus colinas y la idea de la hora detrás del
+  paisaje. La fuente de la hora es Antonio (SIL Open Font Licence).
 - El tiempo: [Open-Meteo](https://open-meteo.com/).
 
 ## Aviso
