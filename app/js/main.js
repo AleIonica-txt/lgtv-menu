@@ -728,10 +728,66 @@ const Reorder = (() => {
   return { start, exit, toggleHold, move, back, active: () => active };
 })();
 
+// ---- Ver los paisajes: el menú se esconde y ←/→ pasan de una foto a otra; Atrás sale ----
+
+const Gallery = (() => {
+  const banner = document.getElementById('banner');
+  let items = [];
+  let index = 0;
+  let active = false;
+
+  function showCurrent() {
+    const it = items[index];
+    Scene.force(it.id);
+    banner.textContent = `‹  ${index + 1} de ${items.length} · ${it.phase}  ›     Atrás para salir`;
+  }
+
+  function start() {
+    items = Scene.list();
+    if (!items.length) {
+      toast('No hay paisajes: descárgalos con tools/fetch_scenes.py');
+      return;
+    }
+    Overlay.closeAll();
+    active = true;
+    index = Math.max(0, items.findIndex((it) => it.id === Scene.shown()));
+    root.classList.add('gallery');
+    banner.classList.add('on');
+    showCurrent();
+    Sound.play('select');
+  }
+
+  function exit() {
+    if (!active) return false;
+    active = false;
+    root.classList.remove('gallery');
+    banner.classList.remove('on');
+    Scene.force(null);
+    return true;
+  }
+
+  // Devuelve true si la tecla era para la galería.
+  function key(code) {
+    if (!active) return false;
+    if (code === KEY.LEFT || code === KEY.RIGHT) {
+      index = (index + (code === KEY.RIGHT ? 1 : items.length - 1)) % items.length;
+      showCurrent();
+      Sound.play('move');
+    } else if (code === KEY.BACK || code === KEY.OK) {
+      exit();
+      Sound.play('back');
+    }
+    return true;
+  }
+
+  return { start, exit, key };
+})();
+
 // ---- Acciones ----
 
 const COMMANDS = {
   settings: () => SettingsPanel.open(),
+  gallery: () => Gallery.start(),
   reorder: () => {
     Overlay.close(true);
     Reorder.start();
@@ -780,6 +836,7 @@ let lastDockSlot = null;
 // Vuelve a la pantalla principal (Home, o Atrás desde la cuadrícula): cierra overlays, sale del
 // modo reordenar y deja el foco en el Dock donde estaba.
 function goHome() {
+  Gallery.exit();
   Overlay.closeAll();
   Reorder.exit();
   Focus.reset();
@@ -820,6 +877,7 @@ let lastMove = 0;
 
 // Gestiona una tecla del mando; devuelve true si la ha usado.
 function handleKey(code, repeat = false) {
+  if (Gallery.key(code)) return true;
   const dir = DIR_KEYS[code];
   if (dir) {
     const now = performance.now();
@@ -950,7 +1008,7 @@ const Bench = (() => {
 //   {"action": "tv"} pulsa ese acceso; {"focus": "netflix"} solo lo enfoca;
 //   {"keys": ["down", "ok", "back"]} simula teclas del mando (las teclas inyectadas no llegan a la app);
 //   {"saver": true} esconde el menú como en reposo; {"resetOrder": true} vuelve al orden por defecto;
-//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo; {"scene": "night1"} fija un paisaje;
+//   {"bench": {}} mide; {"reduceMotion": true} fuerza ese modo; {"scene": "night1"} fija un paisaje; {"gallery": true} abre "Ver los paisajes";
 //   {"debug": ["minimal"]} activa variantes de prueba (clases dbg-* en la página).
 // Con "keys" o "bench" el menú no suena (son pruebas).
 const KEY_NAMES = { left: KEY.LEFT, up: KEY.UP, right: KEY.RIGHT, down: KEY.DOWN, ok: KEY.OK, back: KEY.BACK };
@@ -982,6 +1040,7 @@ function applyParams(params) {
   if (params.bench) Bench.run(typeof params.bench === 'object' ? params.bench : {});
   if (params.saver) Saver.start();
   if ('scene' in params) Scene.force(params.scene);
+  if (params.gallery) Gallery.start();
   (Array.isArray(params.keys) ? params.keys : []).forEach((name, i) => setTimeout(() => handleKey(KEY_NAMES[name]), 400 * (i + 1)));
 }
 

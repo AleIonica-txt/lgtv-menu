@@ -23,8 +23,8 @@ Mi Menú sustituye el inicio de LG por uno propio, más rápido y sin anuncios:
   sigue al sol de tu ciudad: amanecer, día, atardecer y noche; de día, niebla si está cubierto.
 - **Reposo.** Tras unos minutos sin tocar el mando, el menú se esconde y queda el paisaje con la
   hora. Mientras el menú está delante, no sale el salvapantallas de LG ni su publicidad.
-- **Ajustes:** orden de las tarjetas, sonidos, reposo, paisaje, el tiempo, reducir movimiento y qué
-  abre la tecla Home.
+- **Ajustes:** orden de las tarjetas, sonidos, reposo, paisaje, ver los paisajes a pantalla completa
+  (← y → para pasar de uno a otro), el tiempo, reducir movimiento y qué abre la tecla Home.
 - **Memoria.** Cierra servicios pesados que se quedan en marcha sin usarse, como el servidor de
   Stremio (~120 MB). También ajusta el gestor de memoria de LG para que las apps que consumen mucha
   memoria no se reinicien al reproducir.

@@ -381,6 +381,9 @@ const Scene = (() => {
       // Falta algún fichero del paisaje: se queda el que había (o el fondo liso).
     } finally {
       loading = false;
+      // Si mientras cargaba se pidió otro (pasando fotos deprisa, o al salir de "Ver los paisajes"),
+      // se va a por ese.
+      setTimeout(update, 0);
     }
   }
 
@@ -391,7 +394,7 @@ const Scene = (() => {
     const name = wanted();
     if (name === shown) return;
     const now = performance.now();
-    if (shown && (now - lastInput < QUIET_MS || now - visibleSince < QUIET_MS)) {
+    if (shown && !forced && (now - lastInput < QUIET_MS || now - visibleSince < QUIET_MS)) {
       retryTimer = setTimeout(update, QUIET_MS);
       return;
     }
@@ -450,5 +453,13 @@ const Scene = (() => {
     update();
   }
 
-  return { init, configure, force };
+  // Los paisajes en orden de momento del día, para recorrerlos.
+  const PHASE_ORDER = ['dawn', 'day', 'grey', 'golden', 'night'];
+  const PHASE_NAMES = { dawn: 'Amanecer', day: 'Día despejado', grey: 'Día cubierto', golden: 'Atardecer', night: 'Noche' };
+  function list() {
+    return ORDER.slice().sort((a, b) => PHASE_ORDER.indexOf(DEFS[a].phase) - PHASE_ORDER.indexOf(DEFS[b].phase))
+      .map((id) => ({ id, phase: PHASE_NAMES[DEFS[id].phase] || '', place: DEFS[id].place || '' }));
+  }
+
+  return { init, configure, force, list, shown: () => shown };
 })();
